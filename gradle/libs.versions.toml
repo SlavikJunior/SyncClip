@@ -1,0 +1,94 @@
+# ============================================================================
+# SyncClip — Gradle Version Catalog
+# https://docs.gradle.org/current/userguide/platforms.html#tab:version-catalog-toml
+# ============================================================================
+
+[versions]
+# Kotlin
+kotlin = "2.4.21"
+kotlinCoroutines = "1.11.0"
+
+# Android Gradle Plugin
+agp = "9.5.0"
+
+# Compose Multiplatform
+compose = "1.12.2"
+composeCompiler = "1.12.2"
+composeRuntime = "1.12.2"
+
+# Koin (DI)
+koin = "4.1.1"
+
+# Ktor
+ktor = "3.6.1"
+ktorClient = "3.6.1"
+ktorServer = "3.6.1"
+ktorClientCio = "3.6.1"
+ktorServerNetty = "3.6.1"
+
+# Room KMP
+room = "2.8.5"
+
+# DataStore
+datastore = "1.1.1"
+
+# Kache (multiplatform caching)
+kache = "0.8.0"
+
+# kotlinx serialization
+serialization = "1.9.0"
+
+# kotlinx datetime
+datetime = "0.7.0"
+
+# Testing
+junit = "5.11.4"
+kotest = "6.2.5"
+kotlinxCoroutinesTest = "1.11.0"
+
+# Firebase Admin (server)
+firebaseAdmin = "9.9.0"
+
+# PostgreSQL / Exposed (server)
+exposed = "1.6.1"
+postgresql = "42.7.7"
+hikaricp = "6.3.0"
+
+# Linting
+detekt = "2.0.0"
+ktlint = "14.2.0"
+
+# Plugins
+spotless = "6.25.0"
+androidApplication = "9.5.0"
+kotlinMultiplatform = "2.4.21"
+serializationPlugin = "2.4.21"
+
+[plugins]
+# Android
+android-application = { id = "com.android.application", version.ref = "agp" }
+kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
+
+# Multiplatform
+kotlin-multiplatform = { id = "org.jetbrains.kotlin.multiplatform", version.ref = "kotlinMultiplatform" }
+compose-multiplatform = { id = "org.jetbrains.compose", version.ref = "compose" }
+
+# Ktor
+ktor-server-plugin = { id = "io.ktor.server.plugin", version.ref = "ktorServer" }
+ktor-client-plugin = { id = "io.ktor.client.plugin", version.ref = "ktorClient" }
+
+# Koin
+koin-plugin = { id = "org.jetbrains.kotlin.plugin.koin", version.ref = "kotlin" }
+
+# Serialization
+serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+# Spotless
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
+
+# Detekt
+detekt = { id = "io.gitlab.arturbosch.detekt", version.ref = "detekt" }
+
+# ============================================================================
+# End of libs.versions.toml
+# ============================================================================

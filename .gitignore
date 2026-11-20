@@ -1,0 +1,98 @@
+# ============================================================================
+# SyncClip — .gitignore
+# ============================================================================
+
+# OS
+.DS_Store
+Thumbs.db
+.Spotlight-V100
+Trash*
+
+# macOS metadata
+__MACOSX
+.e4xmt
+
+# JetBrains IDEs (IntelliJ IDEA, Android Studio)
+.idea/
+*.iml
+*.ipr
+*.iws
+*.iws.xml
+*.prj
+out/
+build/
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/libs.versions.toml
+
+# Android
+*.apk
+*.aab
+*.apks
+local.properties
+*.keystore
+*.jks
+app/debug/
+app/release/
+app/intermediate/
+
+# Kotlin Multiplatform / Compose Multiplatform
+.konan/
+
+# iOS
+*.xcodeproj/
+xcuserdata/
+*.xcuserstate
+Pods/
+Podfile.lock
+*.xcworkspacedata
+
+# macOS / Desktop
+*.app
+*.dmg
+*.zip
+
+# Logs
+*.log
+*.log.*
+logs/
+
+# Environment / secrets
+.env
+.env.local
+.env.*.local
+auth.json
+secrets.gradle
+*.properties
+
+# Coverage
+coverage/
+*.exec
+jacocoTestReport/
+
+# Test reports
+test-results/
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+
+# Xcode
+*.xcscheme
+xcshareddata/xcschemes/
+
+# Project files
+docs/
+AGENTS.md
+
+# ============================================================================
+# End of .gitignore
+# ============================================================================
