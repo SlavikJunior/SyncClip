@@ -40,6 +40,7 @@ app/intermediate/
 
 # Kotlin Multiplatform / Compose Multiplatform
 .konan/
+.kotlin/
 
 # iOS
 *.xcodeproj/
@@ -66,6 +67,8 @@ logs/
 auth.json
 secrets.gradle
 *.properties
+!gradle.properties
+!gradle/wrapper/gradle-wrapper.properties
 
 # Coverage
 coverage/
@@ -90,8 +93,10 @@ test-results/
 xcshareddata/xcschemes/
 
 # Project files
-docs/
+docs/*
 AGENTS.md
+/swarm-report/
+.harness/
 
 # ============================================================================
 # End of .gitignore
