@@ -1,0 +1,31 @@
+<resources>
+    <string name="sync_title">Sync</string>
+    <string name="sync_subtitle">Local sync</string>
+    <string name="sync_online">Online</string>
+    <string name="sync_offline">Offline</string>
+    <string name="sync_toggle">Toggle online / offline</string>
+    <string name="sync_packets">Packets sent: %1$d</string>
+    <string name="sync_packets_short">%1$d packets</string>
+    <string name="sync_packets_one">%1$d packet</string>
+    <string name="sync_packets_few">%1$d packets</string>
+    <string name="sync_packets_many">%1$d packets</string>
+    <string name="sync_done_title">All done</string>
+    <string name="sync_offline_title">Offline</string>
+    <string name="sync_pause">Pause</string>
+    <string name="sync_resume">Resume</string>
+    <string name="sync_devices">Devices</string>
+    <string name="sync_devices_count">Devices: %1$d</string>
+    <string name="sync_no_devices">No devices</string>
+    <string name="sync_no_devices_hint">Connect a device to start syncing</string>
+    <string name="sync_this_device">This device</string>
+    <string name="sync_last_transfer">Last transfer</string>
+    <string name="sync_source">Clipboard</string>
+    <string name="sync_just_now">Just now</string>
+    <string name="sync_lan_devices">LAN · %1$d devices</string>
+    <string name="sync_lan_one">LAN · %1$d device</string>
+    <string name="sync_lan_few">LAN · %1$d devices</string>
+    <string name="sync_lan_many">LAN · %1$d devices</string>
+    <string name="sync_indicator_description">Sync status: %1$s</string>
+    <string name="sync_empty">No clipboard changes yet</string>
+    <string name="sync_paused">Synchronization paused</string>
+</resources>

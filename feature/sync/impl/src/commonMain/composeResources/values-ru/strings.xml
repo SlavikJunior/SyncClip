@@ -1,0 +1,31 @@
+<resources>
+    <string name="sync_title">Синхронизация</string>
+    <string name="sync_subtitle">Локальная синхронизация</string>
+    <string name="sync_online">В сети</string>
+    <string name="sync_offline">Не в сети</string>
+    <string name="sync_toggle">Переключить онлайн/офлайн</string>
+    <string name="sync_packets">Отправлено пакетов: %1$d</string>
+    <string name="sync_packets_short">%1$d пакетов</string>
+    <string name="sync_packets_one">%1$d пакет</string>
+    <string name="sync_packets_few">%1$d пакета</string>
+    <string name="sync_packets_many">%1$d пакетов</string>
+    <string name="sync_done_title">Всё готово</string>
+    <string name="sync_offline_title">Офлайн</string>
+    <string name="sync_pause">Приостановить</string>
+    <string name="sync_resume">Возобновить</string>
+    <string name="sync_devices">Устройства</string>
+    <string name="sync_devices_count">Устройства: %1$d</string>
+    <string name="sync_no_devices">Нет устройств</string>
+    <string name="sync_no_devices_hint">Подключите устройство, чтобы начать синхронизацию</string>
+    <string name="sync_this_device">Это устройство</string>
+    <string name="sync_last_transfer">Последняя передача</string>
+    <string name="sync_source">Буфер обмена</string>
+    <string name="sync_just_now">Только что</string>
+    <string name="sync_lan_devices">LAN · %1$d устройства</string>
+    <string name="sync_lan_one">LAN · %1$d устройство</string>
+    <string name="sync_lan_few">LAN · %1$d устройства</string>
+    <string name="sync_lan_many">LAN · %1$d устройств</string>
+    <string name="sync_indicator_description">Состояние синхронизации: %1$s</string>
+    <string name="sync_empty">Изменений буфера пока нет</string>
+    <string name="sync_paused">Синхронизация на паузе</string>
+</resources>
