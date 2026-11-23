@@ -1,0 +1,5 @@
+<resources>
+    <string name="nav_history">История</string>
+    <string name="nav_sync">Синхронизация</string>
+    <string name="nav_settings">Настройки</string>
+</resources>

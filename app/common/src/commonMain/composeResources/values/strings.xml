@@ -1,0 +1,5 @@
+<resources>
+    <string name="nav_history">History</string>
+    <string name="nav_sync">Sync</string>
+    <string name="nav_settings">Settings</string>
+</resources>
