@@ -1,0 +1,34 @@
+<resources>
+    <string name="settings_title">Settings</string>
+    <string name="settings_subtitle">Appearance and devices</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_mode_system">System</string>
+    <string name="settings_mode_light">Light</string>
+    <string name="settings_mode_dark">Dark</string>
+    <string name="settings_palette">Color scheme</string>
+    <string name="settings_palette_aqua">Aqua</string>
+    <string name="settings_palette_winter">Winter</string>
+    <string name="settings_palette_monochrome">Monochrome</string>
+    <string name="settings_palette_dynamic">Dynamic</string>
+    <string name="settings_devices">Devices</string>
+    <string name="settings_devices_count">Total: %1$d</string>
+    <string name="settings_devices_hint">Tap a device to rename it</string>
+    <string name="settings_storage">Storage</string>
+    <string name="settings_storage_local">Local history</string>
+    <string name="settings_storage_limit">Up to 200 entries · TTL 7 days</string>
+    <string name="settings_this_device">This device</string>
+    <string name="settings_no_devices">No devices</string>
+    <string name="settings_no_devices_hint">Connect a device to see it here</string>
+    <string name="settings_version">SyncClip 0.1.0 · E2EE</string>
+    <string name="settings_rename">Rename</string>
+    <string name="settings_save">Save</string>
+    <string name="settings_cancel">Cancel</string>
+    <string name="settings_name_label">Device name</string>
+    <string name="settings_icon_label">Icon</string>
+    <string name="settings_error_invalid_name">Use 1–50 letters, digits, spaces or hyphens</string>
+    <string name="settings_error_load">Could not load devices</string>
+    <string name="settings_update_saved">Device updated</string>
+    <string name="settings_update_queued">Offline: change queued for the next connection</string>
+    <string name="settings_pending">Pending changes: %1$d</string>
+    <string name="settings_retry">Retry now</string>
+</resources>

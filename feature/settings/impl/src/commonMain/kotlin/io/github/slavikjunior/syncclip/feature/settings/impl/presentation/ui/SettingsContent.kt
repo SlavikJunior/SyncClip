@@ -1,0 +1,451 @@
+package io.github.slavikjunior.syncclip.feature.settings.impl.presentation.ui
+
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.dp
+import io.github.slavikjunior.syncclip.core.designsystem.component.DeviceRow
+import io.github.slavikjunior.syncclip.core.designsystem.component.EmptyState
+import io.github.slavikjunior.syncclip.core.designsystem.component.SectionHeader
+import io.github.slavikjunior.syncclip.core.designsystem.component.SettingsRow
+import io.github.slavikjunior.syncclip.core.designsystem.component.StatusPillState
+import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIcon
+import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIconKind
+import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipSpacing
+import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipTheme
+import io.github.slavikjunior.syncclip.core.designsystem.theme.ThemeMode
+import io.github.slavikjunior.syncclip.core.designsystem.theme.ThemePreset
+import io.github.slavikjunior.syncclip.core.designsystem.theme.ThemeState
+import io.github.slavikjunior.syncclip.feature.settings.impl.domain.model.DeviceItem
+import io.github.slavikjunior.syncclip.feature.settings.impl.domain.model.DeviceKind
+import io.github.slavikjunior.syncclip.feature.settings.impl.presentation.state.DeviceIntent
+import io.github.slavikjunior.syncclip.feature.settings.impl.presentation.state.DeviceManagementUiState
+import org.jetbrains.compose.resources.stringResource
+import syncclip.feature.settings.impl.generated.resources.Res
+import syncclip.feature.settings.impl.generated.resources.settings_appearance
+import syncclip.feature.settings.impl.generated.resources.settings_cancel
+import syncclip.feature.settings.impl.generated.resources.settings_devices
+import syncclip.feature.settings.impl.generated.resources.settings_devices_count
+import syncclip.feature.settings.impl.generated.resources.settings_devices_hint
+import syncclip.feature.settings.impl.generated.resources.settings_error_load
+import syncclip.feature.settings.impl.generated.resources.settings_icon_label
+import syncclip.feature.settings.impl.generated.resources.settings_mode_dark
+import syncclip.feature.settings.impl.generated.resources.settings_mode_light
+import syncclip.feature.settings.impl.generated.resources.settings_mode_system
+import syncclip.feature.settings.impl.generated.resources.settings_name_label
+import syncclip.feature.settings.impl.generated.resources.settings_no_devices
+import syncclip.feature.settings.impl.generated.resources.settings_no_devices_hint
+import syncclip.feature.settings.impl.generated.resources.settings_palette
+import syncclip.feature.settings.impl.generated.resources.settings_palette_aqua
+import syncclip.feature.settings.impl.generated.resources.settings_palette_dynamic
+import syncclip.feature.settings.impl.generated.resources.settings_palette_monochrome
+import syncclip.feature.settings.impl.generated.resources.settings_palette_winter
+import syncclip.feature.settings.impl.generated.resources.settings_pending
+import syncclip.feature.settings.impl.generated.resources.settings_rename
+import syncclip.feature.settings.impl.generated.resources.settings_retry
+import syncclip.feature.settings.impl.generated.resources.settings_save
+import syncclip.feature.settings.impl.generated.resources.settings_storage
+import syncclip.feature.settings.impl.generated.resources.settings_storage_limit
+import syncclip.feature.settings.impl.generated.resources.settings_storage_local
+import syncclip.feature.settings.impl.generated.resources.settings_subtitle
+import syncclip.feature.settings.impl.generated.resources.settings_this_device
+import syncclip.feature.settings.impl.generated.resources.settings_title
+import syncclip.feature.settings.impl.generated.resources.settings_version
+
+@Composable
+internal fun SettingsContent(
+    state: DeviceManagementUiState,
+    theme: ThemeState,
+    onThemeChange: (ThemeState) -> Unit,
+    onIntent: (DeviceIntent) -> Unit,
+    modifier: Modifier = Modifier,
+    snackbarHostState: SnackbarHostState? = null,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Scaffold(
+        modifier = modifier,
+        snackbarHost = { snackbarHostState?.let { SnackbarHost(it) } },
+    ) { padding ->
+        Column(
+            modifier = Modifier
+                .padding(padding)
+                .fillMaxSize()
+                .statusBarsPadding()
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = SyncClipSpacing.screen),
+            verticalArrangement = Arrangement.spacedBy(SyncClipSpacing.lg),
+        ) {
+            Spacer(modifier = Modifier.height(SyncClipSpacing.xs))
+            Column {
+                Text(
+                    text = stringResource(Res.string.settings_title),
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = scheme.onBackground,
+                )
+                Text(
+                    text = stringResource(Res.string.settings_subtitle),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = scheme.onSurfaceVariant,
+                )
+            }
+
+            SectionHeader(title = stringResource(Res.string.settings_appearance))
+            ThemeModeSelector(
+                mode = theme.mode,
+                onModeChange = { mode -> onThemeChange(theme.copy(mode = mode)) },
+            )
+            SectionHeader(title = stringResource(Res.string.settings_palette))
+            ThemePresetPicker(
+                preset = theme.preset,
+                onPresetChange = { preset -> onThemeChange(theme.copy(preset = preset)) },
+            )
+
+            SectionHeader(
+                title = stringResource(Res.string.settings_devices),
+                trailing = stringResource(Res.string.settings_devices_count, state.devices.size),
+            )
+            Text(
+                text = stringResource(Res.string.settings_devices_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = scheme.onSurfaceVariant,
+            )
+
+            if (state.pendingCount > 0) {
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    color = scheme.surface,
+                    border = BorderStroke(1.dp, scheme.outlineVariant),
+                ) {
+                    SettingsRow(
+                        title = stringResource(Res.string.settings_pending, state.pendingCount),
+                        icon = SyncClipIconKind.ERROR,
+                        trailing = {
+                            TextButton(onClick = { onIntent(DeviceIntent.RetryPending) }) {
+                                Text(text = stringResource(Res.string.settings_retry))
+                            }
+                        },
+                    )
+                }
+            }
+
+            when {
+                state.isLoading -> {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().padding(SyncClipSpacing.lg),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        CircularProgressIndicator()
+                    }
+                }
+
+                state.error != null -> {
+                    Text(
+                        text = stringResource(state.error),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = scheme.error,
+                    )
+                }
+
+                state.devices.isEmpty() -> {
+                    EmptyState(
+                        title = stringResource(Res.string.settings_no_devices),
+                        message = stringResource(Res.string.settings_no_devices_hint),
+                        icon = SyncClipIconKind.DEVICES,
+                    )
+                }
+
+                else -> {
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.large,
+                        color = scheme.surface,
+                        border = BorderStroke(1.dp, scheme.outlineVariant),
+                    ) {
+                        Column {
+                            state.devices.forEachIndexed { index, device ->
+                                DeviceRow(
+                                    name = device.name,
+                                    subtitle = device.platform,
+                                    icon = device.icon.toSyncClipIcon(),
+                                    statusLabel = if (device.isCurrent) {
+                                        stringResource(Res.string.settings_this_device)
+                                    } else {
+                                        null
+                                    },
+                                    status = if (device.isCurrent) {
+                                        StatusPillState.ONLINE
+                                    } else {
+                                        StatusPillState.NEUTRAL
+                                    },
+                                    onClick = {
+                                        onIntent(DeviceIntent.OpenRename(device.id))
+                                    },
+                                )
+                                if (index < state.devices.lastIndex) {
+                                    HorizontalDivider(color = scheme.outlineVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            SectionHeader(title = stringResource(Res.string.settings_storage))
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                color = scheme.surface,
+                border = BorderStroke(1.dp, scheme.outlineVariant),
+            ) {
+                SettingsRow(
+                    title = stringResource(Res.string.settings_storage_local),
+                    subtitle = stringResource(Res.string.settings_storage_limit),
+                    icon = SyncClipIconKind.HISTORY,
+                )
+            }
+
+            Text(
+                text = stringResource(Res.string.settings_version),
+                style = MaterialTheme.typography.labelSmall,
+                color = scheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+    }
+
+    if (state.editingDeviceId != null) {
+        RenameDeviceDialog(state = state, onIntent = onIntent)
+    }
+}
+@Composable
+private fun ThemeModeSelector(
+    mode: ThemeMode,
+    onModeChange: (ThemeMode) -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .background(scheme.surfaceVariant)
+            .padding(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        ThemeMode.entries.forEach { entry ->
+            val selected = entry == mode
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(32.dp)
+                    .clip(MaterialTheme.shapes.small)
+                    .background(if (selected) scheme.surface else Color.Transparent)
+                    .clickable { onModeChange(entry) },
+                contentAlignment = Alignment.Center,
+            ) {
+                Text(
+                    text = ThemeModeLabel(entry),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = if (selected) scheme.onSurface else scheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemeModeLabel(mode: ThemeMode): String = when (mode) {
+    ThemeMode.SYSTEM -> stringResource(Res.string.settings_mode_system)
+    ThemeMode.LIGHT -> stringResource(Res.string.settings_mode_light)
+    ThemeMode.DARK -> stringResource(Res.string.settings_mode_dark)
+}
+
+@Composable
+private fun ThemePresetPicker(
+    preset: ThemePreset,
+    onPresetChange: (ThemePreset) -> Unit,
+) {
+    val scheme = MaterialTheme.colorScheme
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+    ) {
+        ThemePreset.entries.forEach { entry ->
+            val selected = entry == preset
+            val colors = if (entry == ThemePreset.DYNAMIC) {
+                listOf(scheme.primary, scheme.secondary, scheme.tertiary)
+            } else {
+                entry.swatchColors
+            }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(MaterialTheme.shapes.medium)
+                    .clickable { onPresetChange(entry) }
+                    .padding(vertical = 4.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(6.dp),
+            ) {
+                Box {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(CircleShape)
+                            .background(Brush.linearGradient(colors))
+                            .border(
+                                width = if (selected) 2.dp else 1.dp,
+                                color = if (selected) scheme.primary else scheme.outlineVariant,
+                                shape = CircleShape,
+                            ),
+                    )
+                    if (selected) {
+                        Box(
+                            modifier = Modifier
+                                .align(Alignment.BottomEnd)
+                                .size(16.dp)
+                                .clip(CircleShape)
+                                .background(scheme.surface)
+                                .border(1.dp, scheme.primary, CircleShape),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            SyncClipIcon(
+                                kind = SyncClipIconKind.CHECK,
+                                contentDescription = null,
+                                tint = scheme.primary,
+                                size = 10.dp,
+                            )
+                        }
+                    }
+                }
+                Text(
+                    text = ThemePresetLabel(entry),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (selected) scheme.primary else scheme.onSurfaceVariant,
+                    maxLines = 1,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ThemePresetLabel(preset: ThemePreset): String = when (preset) {
+    ThemePreset.AQUA -> stringResource(Res.string.settings_palette_aqua)
+    ThemePreset.WINTER -> stringResource(Res.string.settings_palette_winter)
+    ThemePreset.MONOCHROME -> stringResource(Res.string.settings_palette_monochrome)
+    ThemePreset.DYNAMIC -> stringResource(Res.string.settings_palette_dynamic)
+}
+
+@Composable
+private fun RenameDeviceDialog(
+    state: DeviceManagementUiState,
+    onIntent: (DeviceIntent) -> Unit,
+) {
+    val nameLabel = stringResource(Res.string.settings_name_label)
+    val iconLabel = stringResource(Res.string.settings_icon_label)
+    AlertDialog(
+        onDismissRequest = { onIntent(DeviceIntent.DismissDialog) },
+        title = { Text(text = stringResource(Res.string.settings_rename)) },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = state.draftName,
+                    onValueChange = { name -> onIntent(DeviceIntent.NameChanged(name)) },
+                    singleLine = true,
+                    label = { Text(text = nameLabel) },
+                    supportingText = { Text(text = iconLabel) },
+                )
+                DeviceKind.entries.forEach { icon ->
+                    TextButton(onClick = { onIntent(DeviceIntent.IconSelected(icon)) }) {
+                        Text(text = icon.name)
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(onClick = { onIntent(DeviceIntent.Save) }) {
+                Text(text = stringResource(Res.string.settings_save))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = { onIntent(DeviceIntent.DismissDialog) }) {
+                Text(text = stringResource(Res.string.settings_cancel))
+            }
+        },
+    )
+}
+
+private fun DeviceKind.toSyncClipIcon(): SyncClipIconKind = when (this) {
+    DeviceKind.PHONE -> SyncClipIconKind.PHONE
+    DeviceKind.TABLET -> SyncClipIconKind.TABLET
+    DeviceKind.LAPTOP -> SyncClipIconKind.LAPTOP
+    DeviceKind.DESKTOP -> SyncClipIconKind.DESKTOP
+    DeviceKind.WATCH -> SyncClipIconKind.WATCH
+    DeviceKind.TV -> SyncClipIconKind.TV
+}
+
+@Preview
+@Composable
+private fun SettingsContentPreview() {
+    SyncClipTheme {
+        SettingsContent(
+            state = DeviceManagementUiState(
+                devices = listOf(
+                    DeviceItem(
+                        id = "1",
+                        name = "MacBook Pro",
+                        icon = DeviceKind.LAPTOP,
+                        platform = "MACOS",
+                        isCurrent = true,
+                    ),
+                    DeviceItem(
+                        id = "2",
+                        name = "iPhone 15 Pro",
+                        icon = DeviceKind.PHONE,
+                        platform = "IOS",
+                        isCurrent = false,
+                    ),
+                ),
+            ),
+            theme = ThemeState(),
+            onThemeChange = {},
+            onIntent = {},
+        )
+    }
+}
