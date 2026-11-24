@@ -1,0 +1,55 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.CANARY_ALREADY_SET$409</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.CANARY_NOT_FOUND$404</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.DEVICE_ID_CONFLICT$409</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.DEVICE_LIMIT_EXCEEDED$403</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.DEVICE_MISMATCH$403</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.DEVICE_NOT_FOUND$404</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.DEVICE_REVOKED$401</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.EMAIL_ALREADY_REGISTERED$409</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.EMAIL_NOT_VERIFIED$403</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.FIREBASE_TOKEN_INVALID$401</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.FORBIDDEN_FOR_GUEST$403</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.GUEST_INVITE_ALREADY_USED$400</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.GUEST_INVITE_EXPIRED$400</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.GUEST_SESSION_EXPIRED$401</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.INTERNAL_ERROR$500</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.INVALID_CREDENTIALS$401</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.INVALID_GUEST_INVITE$400</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.MASTER_PASSWORD_LOCKED$403</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.METHOD_NOT_ALLOWED$405</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.NOT_FOUND$404</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.PAYLOAD_TOO_LARGE$413</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.RATE_LIMIT_EXCEEDED$429</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.REFRESH_TOKEN_REUSED$401</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.TOKEN_EXPIRED$401</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.TOKEN_INVALID$401</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.TOKEN_REVOKED$401</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.UNSUPPORTED_MEDIA_TYPE$415</ID>
+    <ID>MagicNumber:ErrorCode.kt:ErrorCode.VALIDATION_ERROR$400</ID>
+    <ID>MagicNumber:UuidV7.kt:UuidV7$0x3F</ID>
+    <ID>MagicNumber:UuidV7.kt:UuidV7$0x70</ID>
+    <ID>MagicNumber:UuidV7.kt:UuidV7$0x80</ID>
+    <ID>MagicNumber:UuidV7.kt:UuidV7$16</ID>
+    <ID>MagicNumber:UuidV7.kt:UuidV7$24</ID>
+    <ID>MagicNumber:UuidV7.kt:UuidV7$3</ID>
+    <ID>MagicNumber:UuidV7.kt:UuidV7$32</ID>
+    <ID>MagicNumber:UuidV7.kt:UuidV7$4</ID>
+    <ID>MagicNumber:UuidV7.kt:UuidV7$40</ID>
+    <ID>MagicNumber:UuidV7.kt:UuidV7$5</ID>
+    <ID>MagicNumber:UuidV7.kt:UuidV7$6</ID>
+    <ID>MagicNumber:UuidV7.kt:UuidV7$8</ID>
+    <ID>MagicNumber:Validators.kt:Validators$255</ID>
+    <ID>MagicNumber:Validators.kt:Validators$3</ID>
+    <ID>MatchingDeclarationName:GuestInviteDto.kt:GuestInviteResponse</ID>
+    <ID>MaxLineLength:WsSerializationTest.kt:WsSerializationTest$"""{"type":"ACK","eventId":"9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d","deviceId":"7c9e6679-7425-40de-944b-e07fc1f90ae7"}"""</ID>
+    <ID>ReturnCount:IpAddresses.kt:IpAddresses$fun parseCidr: IpRange?</ID>
+    <ID>ReturnCount:IpAddresses.kt:IpAddresses$fun parseLiteral: InetAddress?</ID>
+    <ID>ReturnCount:IpAddresses.kt:IpAddresses.IpRange$fun contains: Boolean</ID>
+    <ID>ThrowsCount:Validators.kt:Validators$fun deviceName: String</ID>
+    <ID>TooManyFunctions:Validators.kt:Validators</ID>
+  </CurrentIssues>
+</SmellBaseline>
