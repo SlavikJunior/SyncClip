@@ -1,0 +1,106 @@
+name: backend
+
+on:
+  push:
+    paths:
+      - "syncclip-backend/**"
+      - ".github/workflows/backend.yml"
+  pull_request:
+    paths:
+      - "syncclip-backend/**"
+      - ".github/workflows/backend.yml"
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: syncclip-backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: syncclip_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d syncclip_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+
+      - uses: gradle/actions/setup-gradle@v4
+
+      - name: Module graph
+        run: ./gradlew checkModuleDependencies --console=plain
+
+      # OPS-05: интеграционные тесты обязательны; без TEST_DB_URL они скипаются.
+      - name: Check (unit + integration) + coverage report
+        env:
+          TEST_DB_URL: jdbc:postgresql://localhost:5432/syncclip_test
+          TEST_DB_USER: postgres
+          TEST_DB_PASSWORD: postgres
+        run: ./gradlew check jacocoTestReport --console=plain
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        with:
+          name: jacoco-html
+          path: syncclip-backend/server/**/build/reports/jacoco/test/html
+          if-no-files-found: warn
+
+      - name: Integration tests must not be skipped
+        run: |
+          if grep -R -l "<skipped" server --include='*.xml' 2>/dev/null | grep -q .; then
+            echo "::error::Integration tests were skipped; TEST_DB_URL is required"
+            exit 1
+          fi
+
+  osv-scan:
+    # OPS-06: SCA по gradle.lockfile (OSV.dev); новые уязвимости валят PR.
+    uses: google/osv-scanner-action/.github/workflows/osv-scanner-reusable.yml@v2.7.1
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    with:
+      scan-args: |-
+        --recursive
+        ./syncclip-backend
+
+  trivy-image:
+    # OPS-06: образ сканируется Trivy (OS + библиотеки); HIGH/CRITICAL валят job.
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t syncclip-backend:ci syncclip-backend
+
+      - name: Trivy image scan
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: syncclip-backend:ci
+          format: sarif
+          output: trivy-results.sarif
+          severity: CRITICAL,HIGH
+          ignore-unfixed: true
+          exit-code: "1"
+
+      - name: Upload Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-results.sarif
