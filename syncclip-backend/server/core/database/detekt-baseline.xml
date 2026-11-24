@@ -1,0 +1,32 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:SqlScript.kt:SqlScript$fun split: List&lt;String&gt;</ID>
+    <ID>MagicNumber:AuthAttemptRepository.kt:255</ID>
+    <ID>MagicNumber:AuthAttemptRepository.kt:512</ID>
+    <ID>MagicNumber:DatabaseFactory.kt:DatabaseFactory$1000</ID>
+    <ID>MaxLineLength:AuthAttemptsTable.kt:AuthAttemptsTable$val attemptedAt = timestampUtc("attempted_at").clientDefault { java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC) }</ID>
+    <ID>MaxLineLength:CanaryRepository.kt:internal</ID>
+    <ID>MaxLineLength:DeviceRepository.kt:internal</ID>
+    <ID>MaxLineLength:DevicesTable.kt:DevicesTable$val lastSeenAt = timestampUtc("last_seen_at").clientDefault { java.time.OffsetDateTime.now(java.time.ZoneOffset.UTC) }</ID>
+    <ID>MaxLineLength:GuestInviteRepository.kt:internal</ID>
+    <ID>MaxLineLength:MigrationRunner.kt:MigrationRunner$"Migration ${migration.version} checksum mismatch: applied=$known actual=${migration.checksum}"</ID>
+    <ID>MaxLineLength:RefreshTokenRepository.kt:internal</ID>
+    <ID>NestedBlockDepth:MigrationRunner.kt:MigrationRunner$fun migrate</ID>
+    <ID>ReturnCount:OfflineQueueRepository.kt:internal fun JdbcTransaction.evictOldestQueuedPackets: Int</ID>
+    <ID>ReturnCount:SqlScript.kt:SqlScript$private fun readDollarTag: String?</ID>
+    <ID>SwallowedException:DatabaseFactory.kt:DatabaseFactory$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:CanaryRepository.kt:e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DatabaseFactory.kt:DatabaseFactory$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:DeviceRepository.kt:e: Exception</ID>
+    <ID>TooGenericExceptionCaught:FcmTokenRepository.kt:e: Exception</ID>
+    <ID>TooGenericExceptionCaught:MigrationRunner.kt:MigrationRunner$e: Exception</ID>
+    <ID>TooGenericExceptionCaught:UserRepository.kt:e: Exception</ID>
+    <ID>TooManyFunctions:DeviceRepository.kt:io.github.slavikjunior.syncclip.server.core.database.repository.DeviceRepository.kt</ID>
+    <ID>TooManyFunctions:MigrationRunner.kt:MigrationRunner</ID>
+    <ID>TooManyFunctions:OfflineQueueRepository.kt:io.github.slavikjunior.syncclip.server.core.database.repository.OfflineQueueRepository.kt</ID>
+    <ID>WildcardImport:DeviceRepository.kt:import org.jetbrains.exposed.v1.core.*</ID>
+    <ID>WildcardImport:UserRepository.kt:import org.jetbrains.exposed.v1.core.*</ID>
+  </CurrentIssues>
+</SmellBaseline>
