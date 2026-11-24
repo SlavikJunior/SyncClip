@@ -1,0 +1,37 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>LongMethod:ConfigLoader.kt:ConfigLoader$fun load: AppConfig</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$10</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$100</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$10_000</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$10_080</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$120</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$120_000</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$16</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$168</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$16_777_216</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$1_000</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$1_000_000</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$1_024</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$1_440</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$20</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$200</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$2_000_000</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$300</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$32</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$365</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$5</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$50</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$500</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$60</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$60_000</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$64</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$65_535</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$65_536</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$67_108_864</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$8</ID>
+    <ID>MagicNumber:ConfigValidation.kt:ConfigValidation$86_400</ID>
+  </CurrentIssues>
+</SmellBaseline>

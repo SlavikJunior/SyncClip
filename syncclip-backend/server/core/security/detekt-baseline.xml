@@ -1,0 +1,25 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MagicNumber:JwtClaims.kt:JwtClaims.Companion$1000</ID>
+    <ID>MagicNumber:LockoutPolicy.kt:LockoutPolicy$3</ID>
+    <ID>MagicNumber:LockoutPolicy.kt:LockoutPolicy$5</ID>
+    <ID>MagicNumber:LockoutPolicy.kt:LockoutPolicy.Companion$5</ID>
+    <ID>MagicNumber:Pbkdf2PasswordHasher.kt:Pbkdf2PasswordHasher$10_000_000</ID>
+    <ID>MagicNumber:Pbkdf2PasswordHasher.kt:Pbkdf2PasswordHasher$4</ID>
+    <ID>MagicNumber:RateLimiter.kt:KeyedRateLimiter$10</ID>
+    <ID>MagicNumber:SecureTokens.kt:SecureTokens$16</ID>
+    <ID>MagicNumber:SecureTokens.kt:SecureTokens$32</ID>
+    <ID>MagicNumber:TokenHasher.kt:TokenHasher$4</ID>
+    <ID>ReturnCount:LockoutPolicy.kt:LockoutPolicy$fun check: LockVerdict</ID>
+    <ID>ReturnCount:LockoutPolicy.kt:LockoutPolicy$fun onFailure: FailureOutcome</ID>
+    <ID>ReturnCount:Pbkdf2PasswordHasher.kt:Pbkdf2PasswordHasher$override fun needsRehash: Boolean</ID>
+    <ID>ReturnCount:Pbkdf2PasswordHasher.kt:Pbkdf2PasswordHasher$override fun verify: Boolean</ID>
+    <ID>ReturnCount:TrustedProxyResolver.kt:TrustedProxyResolver$fun resolve: String</ID>
+    <ID>SwallowedException:JwtVerifier.kt:JwtVerifier$e: IllegalArgumentException</ID>
+    <ID>SwallowedException:JwtVerifier.kt:JwtVerifier$e: JWTVerificationException</ID>
+    <ID>SwallowedException:JwtVerifier.kt:JwtVerifier$e: TokenExpiredException</ID>
+    <ID>ThrowsCount:JwtVerifier.kt:JwtVerifier$private fun DecodedJWT.toClaims: JwtClaims</ID>
+  </CurrentIssues>
+</SmellBaseline>
