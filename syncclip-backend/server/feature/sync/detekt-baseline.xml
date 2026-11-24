@@ -1,0 +1,24 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>CyclomaticComplexMethod:SyncWebSocket.kt:private suspend fun DefaultWebSocketServerSession.readLoop</ID>
+    <ID>LongMethod:SyncWebSocket.kt:fun Route.syncWebSocket</ID>
+    <ID>LongMethod:SyncWebSocket.kt:private suspend fun DefaultWebSocketServerSession.readLoop</ID>
+    <ID>LoopWithTooManyJumpStatements:SyncWebSocket.kt:for</ID>
+    <ID>MagicNumber:SessionRegistry.kt:SessionRegistry$1000</ID>
+    <ID>MagicNumber:SessionRegistry.kt:SessionRegistry$1001</ID>
+    <ID>MagicNumber:SessionRegistry.kt:SessionRegistry$60.0</ID>
+    <ID>MagicNumber:SyncService.kt:SyncService$1000.0</ID>
+    <ID>MaxLineLength:SyncAuth.kt:internal suspend</ID>
+    <ID>MaxLineLength:SyncService.kt:SyncService$*</ID>
+    <ID>MaxLineLength:SyncService.kt:SyncService$suspend</ID>
+    <ID>ReturnCount:SessionRegistry.kt:SessionRegistry$fun offerTracked: Boolean</ID>
+    <ID>ReturnCount:SessionRegistry.kt:SessionRegistry$fun open: DeviceSession?</ID>
+    <ID>ReturnCount:SessionRegistry.kt:SessionRegistry$suspend fun offerTrackedAwait: Boolean</ID>
+    <ID>ReturnCount:SyncWebSocket.kt:private suspend fun DefaultWebSocketServerSession.readLoop</ID>
+    <ID>SwallowedException:SyncWebSocket.kt:e: Exception</ID>
+    <ID>TooGenericExceptionCaught:SyncWebSocket.kt:e: Exception</ID>
+    <ID>TooManyFunctions:SessionRegistry.kt:SessionRegistry : UserSessionGateway</ID>
+  </CurrentIssues>
+</SmellBaseline>

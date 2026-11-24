@@ -1,0 +1,17 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>MagicNumber:FcmPushSender.kt:FcmPushSender$10</ID>
+    <ID>MagicNumber:FcmPushSender.kt:FcmPushSender$200</ID>
+    <ID>MagicNumber:FcmPushSender.kt:FcmPushSender$400</ID>
+    <ID>MagicNumber:FcmPushSender.kt:FcmPushSender$401</ID>
+    <ID>MagicNumber:FcmPushSender.kt:FcmPushSender$403</ID>
+    <ID>MagicNumber:FcmPushSender.kt:FcmPushSender$404</ID>
+    <ID>MagicNumber:FcmPushSender.kt:FcmPushSender$500</ID>
+    <ID>MagicNumber:FcmPushSender.kt:FcmPushSender$599</ID>
+    <ID>MagicNumber:FcmPushSender.kt:FcmPushSender$60</ID>
+    <ID>ReturnCount:FcmPushSender.kt:FcmPushSender$private fun accessToken: String?</ID>
+    <ID>ReturnCount:FcmPushSender.kt:FcmPushSender$private fun sendOne: SendOutcome</ID>
+  </CurrentIssues>
+</SmellBaseline>

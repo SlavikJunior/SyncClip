@@ -1,0 +1,8 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>ReturnCount:UnreadFeedService.kt:UnreadFeedService$private fun parseCursor: Cursor?</ID>
+    <ID>ThrowsCount:FcmRegistrationService.kt:FcmRegistrationService$suspend fun register</ID>
+  </CurrentIssues>
+</SmellBaseline>
