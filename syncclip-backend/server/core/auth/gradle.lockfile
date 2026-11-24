@@ -1,0 +1,24 @@
+# This is a Gradle generated file for dependency locking.
+# Manual edits can break the build and are not advised.
+# This file is expected to be part of source control.
+# To regenerate this file, run: ./gradlew :server:core:auth:dependencies --write-locks
+com.zaxxer:HikariCP:6.3.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.checkerframework:checker-qual:3.49.3=runtimeClasspath,testRuntimeClasspath
+org.jetbrains.exposed:exposed-core:1.6.1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains.exposed:exposed-java-time:1.6.1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains.exposed:exposed-jdbc:1.6.1=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains.kotlin:kotlin-reflect:2.3.20=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains.kotlin:kotlin-stdlib:2.4.21=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains.kotlinx:kotlinx-coroutines-bom:1.11.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.11.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains.kotlinx:kotlinx-datetime-jvm:0.7.1-0.6.x-compat=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains.kotlinx:kotlinx-serialization-bom:1.13.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains.kotlinx:kotlinx-serialization-core-jvm:1.13.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains.kotlinx:kotlinx-serialization-core:1.13.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains.kotlinx:kotlinx-serialization-json-jvm:1.13.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains.kotlinx:kotlinx-serialization-json:1.13.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.jetbrains:annotations:23.0.0=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.postgresql:postgresql:42.7.7=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+org.slf4j:slf4j-api:2.0.17=compileClasspath,runtimeClasspath,testCompileClasspath,testRuntimeClasspath
+empty=

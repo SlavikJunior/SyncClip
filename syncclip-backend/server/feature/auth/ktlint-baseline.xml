@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<baseline version="1.0">
+    <file name="src/main/kotlin/io/github/slavikjunior/syncclip/server/feature/auth/api/AuthDtoMapping.kt">
+        <error line="18" column="44" source="standard:multiline-expression-wrapping" />
+        <error line="18" column="44" source="standard:function-signature" />
+        <error line="26" column="41" source="standard:multiline-expression-wrapping" />
+        <error line="26" column="41" source="standard:function-signature" />
+        <error line="34" column="49" source="standard:multiline-expression-wrapping" />
+        <error line="34" column="49" source="standard:function-signature" />
+        <error line="40" column="49" source="standard:multiline-expression-wrapping" />
+        <error line="40" column="49" source="standard:function-signature" />
+        <error line="40" column="70" source="standard:paren-spacing" />
+        <error line="40" column="70" source="standard:wrapping" />
+        <error line="40" column="71" source="standard:no-multi-spaces" />
+        <error line="40" column="74" source="standard:argument-list-wrapping" />
+        <error line="40" column="88" source="standard:multiline-expression-wrapping" />
+        <error line="41" column="1" source="standard:indent" />
+        <error line="42" column="1" source="standard:indent" />
+        <error line="48" column="62" source="standard:multiline-expression-wrapping" />
+        <error line="48" column="62" source="standard:function-signature" />
+        <error line="52" column="19" source="standard:multiline-expression-wrapping" />
+    </file>
+    <file name="src/main/kotlin/io/github/slavikjunior/syncclip/server/feature/auth/api/AuthRoutes.kt">
+        <error line="64" column="27" source="standard:multiline-expression-wrapping" />
+        <error line="113" column="42" source="standard:multiline-expression-wrapping" />
+        <error line="121" column="1" source="standard:blank-line-between-when-conditions" />
+        <error line="122" column="1" source="standard:blank-line-between-when-conditions" />
+        <error line="123" column="1" source="standard:blank-line-between-when-conditions" />
+        <error line="164" column="29" source="standard:multiline-expression-wrapping" />
+    </file>
+    <file name="src/main/kotlin/io/github/slavikjunior/syncclip/server/feature/auth/domain/AuthCommands.kt">
+        <error line="64" column="24" source="standard:class-signature" />
+        <error line="64" column="45" source="standard:class-signature" />
+        <error line="65" column="5" source="standard:blank-line-before-declaration" />
+        <error line="66" column="5" source="standard:blank-line-before-declaration" />
+        <error line="67" column="5" source="standard:blank-line-before-declaration" />
+        <error line="67" column="23" source="standard:class-signature" />
+        <error line="67" column="43" source="standard:class-signature" />
+        <error line="67" column="63" source="standard:class-signature" />
+        <error line="68" column="5" source="standard:blank-line-before-declaration" />
+    </file>
+    <file name="src/main/kotlin/io/github/slavikjunior/syncclip/server/feature/auth/domain/AuthService.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+        <error line="56" column="1" source="standard:no-empty-first-line-in-class-body" />
+        <error line="60" column="26" source="standard:function-signature" />
+        <error line="60" column="52" source="standard:function-signature" />
+        <error line="60" column="69" source="standard:function-signature" />
+        <error line="72" column="34" source="standard:multiline-expression-wrapping" />
+        <error line="83" column="26" source="standard:multiline-expression-wrapping" />
+        <error line="107" column="23" source="standard:function-signature" />
+        <error line="107" column="46" source="standard:function-signature" />
+        <error line="107" column="63" source="standard:function-signature" />
+        <error line="140" column="28" source="standard:multiline-expression-wrapping" />
+        <error line="171" column="28" source="standard:multiline-expression-wrapping" />
+        <error line="177" column="23" source="standard:multiline-expression-wrapping" />
+        <error line="198" column="38" source="standard:multiline-expression-wrapping" />
+        <error line="215" column="26" source="standard:multiline-expression-wrapping" />
+        <error line="240" column="27" source="standard:multiline-expression-wrapping" />
+        <error line="266" column="23" source="standard:multiline-expression-wrapping" />
+        <error line="270" column="24" source="standard:multiline-expression-wrapping" />
+        <error line="282" column="25" source="standard:when-entry-bracing" />
+        <error line="292" column="29" source="standard:when-entry-bracing" />
+        <error line="315" column="32" source="standard:multiline-expression-wrapping" />
+        <error line="328" column="26" source="standard:multiline-expression-wrapping" />
+        <error line="332" column="26" source="standard:multiline-expression-wrapping" />
+        <error line="357" column="27" source="standard:multiline-expression-wrapping" />
+        <error line="370" column="45" source="standard:function-signature" />
+        <error line="370" column="61" source="standard:function-signature" />
+        <error line="370" column="73" source="standard:function-signature" />
+        <error line="384" column="53" source="standard:function-signature" />
+        <error line="384" column="69" source="standard:function-signature" />
+        <error line="384" column="81" source="standard:function-signature" />
+        <error line="392" column="19" source="standard:multiline-expression-wrapping" />
+    </file>
+    <file name="src/main/kotlin/io/github/slavikjunior/syncclip/server/feature/auth/domain/FirebaseVerifier.kt">
+        <error line="43" column="42" source="standard:multiline-expression-wrapping" />
+        <error line="43" column="52" source="standard:chain-method-continuation" />
+        <error line="49" column="1" source="standard:no-empty-first-line-in-class-body" />
+        <error line="50" column="35" source="standard:class-signature" />
+        <error line="50" column="69" source="standard:class-signature" />
+        <error line="50" column="91" source="standard:class-signature" />
+        <error line="56" column="23" source="standard:multiline-expression-wrapping" />
+        <error line="65" column="25" source="standard:multiline-expression-wrapping" />
+        <error line="68" column="24" source="standard:multiline-expression-wrapping" />
+        <error line="68" column="27" source="standard:chain-method-continuation" />
+        <error line="73" column="19" source="standard:multiline-expression-wrapping" />
+        <error line="81" column="21" source="standard:multiline-expression-wrapping" />
+        <error line="81" column="24" source="standard:chain-method-continuation" />
+        <error line="81" column="42" source="standard:chain-method-continuation" />
+        <error line="109" column="23" source="standard:multiline-expression-wrapping" />
+        <error line="109" column="34" source="standard:chain-method-continuation" />
+        <error line="113" column="24" source="standard:multiline-expression-wrapping" />
+        <error line="122" column="21" source="standard:multiline-expression-wrapping" />
+        <error line="128" column="20" source="standard:multiline-expression-wrapping" />
+        <error line="128" column="25" source="standard:chain-method-continuation" />
+        <error line="136" column="19" source="standard:multiline-expression-wrapping" />
+        <error line="136" column="27" source="standard:chain-method-continuation" />
+        <error line="136" column="37" source="standard:chain-method-continuation" />
+        <error line="136" column="65" source="standard:chain-method-continuation" />
+        <error line="143" column="15" source="standard:chain-method-continuation" />
+    </file>
+    <file name="src/main/kotlin/io/github/slavikjunior/syncclip/server/feature/auth/domain/GuestService.kt">
+        <error line="36" column="1" source="standard:no-empty-first-line-in-class-body" />
+        <error line="55" column="26" source="standard:function-signature" />
+        <error line="55" column="57" source="standard:function-signature" />
+        <error line="55" column="74" source="standard:function-signature" />
+        <error line="59" column="26" source="standard:multiline-expression-wrapping" />
+        <error line="63" column="21" source="standard:when-entry-bracing" />
+        <error line="66" column="21" source="standard:when-entry-bracing" />
+        <error line="69" column="21" source="standard:when-entry-bracing" />
+        <error line="79" column="28" source="standard:multiline-expression-wrapping" />
+        <error line="93" column="36" source="standard:multiline-expression-wrapping" />
+    </file>
+    <file name="src/main/kotlin/io/github/slavikjunior/syncclip/server/feature/auth/domain/MasterPasswordService.kt">
+        <error line="3" column="1" source="standard:import-ordering" />
+        <error line="44" column="1" source="standard:no-empty-first-line-in-class-body" />
+        <error line="52" column="27" source="standard:function-signature" />
+        <error line="52" column="49" source="standard:function-signature" />
+        <error line="52" column="72" source="standard:function-signature" />
+        <error line="54" column="22" source="standard:multiline-expression-wrapping" />
+        <error line="57" column="22" source="standard:if-else-wrapping" />
+        <error line="57" column="22" source="standard:multiline-if-else" />
+        <error line="63" column="31" source="standard:function-signature" />
+        <error line="63" column="53" source="standard:function-signature" />
+        <error line="63" column="71" source="standard:function-signature" />
+        <error line="63" column="88" source="standard:function-signature" />
+        <error line="66" column="22" source="standard:multiline-expression-wrapping" />
+        <error line="97" column="1" source="standard:blank-line-between-when-conditions" />
+        <error line="98" column="1" source="standard:blank-line-between-when-conditions" />
+        <error line="124" column="36" source="standard:function-signature" />
+        <error line="124" column="58" source="standard:function-signature" />
+        <error line="124" column="75" source="standard:function-signature" />
+        <error line="127" column="23" source="standard:multiline-expression-wrapping" />
+        <error line="129" column="24" source="standard:multiline-expression-wrapping" />
+        <error line="144" column="55" source="standard:multiline-expression-wrapping" />
+        <error line="144" column="55" source="standard:function-signature" />
+        <error line="150" column="66" source="standard:multiline-expression-wrapping" />
+        <error line="150" column="66" source="standard:function-signature" />
+        <error line="159" column="9" source="standard:blank-line-before-declaration" />
+        <error line="159" column="28" source="standard:class-signature" />
+        <error line="159" column="46" source="standard:class-signature" />
+        <error line="160" column="9" source="standard:blank-line-before-declaration" />
+        <error line="160" column="27" source="standard:class-signature" />
+        <error line="160" column="54" source="standard:class-signature" />
+    </file>
+    <file name="src/main/kotlin/io/github/slavikjunior/syncclip/server/feature/auth/domain/SessionService.kt">
+        <error line="46" column="1" source="standard:no-empty-first-line-in-class-body" />
+        <error line="48" column="22" source="standard:multiline-expression-wrapping" />
+        <error line="56" column="23" source="standard:multiline-expression-wrapping" />
+        <error line="72" column="42" source="standard:when-entry-bracing" />
+        <error line="74" column="48" source="standard:when-entry-bracing" />
+        <error line="78" column="34" source="standard:multiline-expression-wrapping" />
+        <error line="101" column="24" source="standard:function-signature" />
+        <error line="101" column="46" source="standard:function-signature" />
+        <error line="101" column="69" source="standard:function-signature" />
+        <error line="101" column="88" source="standard:function-signature" />
+        <error line="135" column="26" source="standard:multiline-expression-wrapping" />
+        <error line="170" column="23" source="standard:multiline-expression-wrapping" />
+    </file>
+    <file name="src/main/kotlin/io/github/slavikjunior/syncclip/server/feature/auth/domain/SessionTokenStore.kt">
+        <error line="21" column="1" source="standard:no-empty-first-line-in-class-body" />
+    </file>
+</baseline>

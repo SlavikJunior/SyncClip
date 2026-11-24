@@ -1,0 +1,21 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>LongMethod:AuthRoutes.kt:fun Route.authRoutes</ID>
+    <ID>LongMethod:AuthService.kt:AuthService$suspend fun login: AuthSession</ID>
+    <ID>MagicNumber:AuthDtoMapping.kt:255</ID>
+    <ID>MagicNumber:AuthDtoMapping.kt:512</ID>
+    <ID>MagicNumber:SessionTokenStore.kt:SessionTokenStore$24</ID>
+    <ID>MagicNumber:SessionTokenStore.kt:SessionTokenStore$3600</ID>
+    <ID>ReturnCount:SessionService.kt:SessionService$private fun JdbcTransaction.handleRevoked: RefreshOutcome</ID>
+    <ID>ReturnCount:SessionService.kt:SessionService$private fun JdbcTransaction.revokeProvidedFamily</ID>
+    <ID>ReturnCount:SessionService.kt:SessionService$suspend fun refresh: RefreshOutcome</ID>
+    <ID>SwallowedException:SessionService.kt:SessionService$e: TokenException</ID>
+    <ID>SwallowedException:SessionService.kt:SessionService$e: TokenException.Expired</ID>
+    <ID>ThrowsCount:AuthRoutes.kt:fun Route.authRoutes</ID>
+    <ID>ThrowsCount:AuthService.kt:AuthService$suspend fun login: AuthSession</ID>
+    <ID>ThrowsCount:AuthService.kt:AuthService$suspend fun register: AuthSession</ID>
+    <ID>ThrowsCount:GuestService.kt:GuestService$suspend fun exchange: GuestSession</ID>
+  </CurrentIssues>
+</SmellBaseline>
