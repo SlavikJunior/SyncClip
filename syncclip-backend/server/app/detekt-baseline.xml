@@ -1,0 +1,28 @@
+<?xml version="1.0" ?>
+<SmellBaseline>
+  <ManuallySuppressedIssues/>
+  <CurrentIssues>
+    <ID>LongMethod:Routing.kt:fun Application.configureRouting</ID>
+    <ID>LongMethod:ServerModule.kt:fun serverModule</ID>
+    <ID>LongMethod:StatusPages.kt:fun Application.configureStatusPages</ID>
+    <ID>MagicNumber:StatusPages.kt:500</ID>
+    <ID>MagicNumber:WebSockets.kt:1000</ID>
+    <ID>MatchingDeclarationName:HealthRoutes.kt:HealthResponse</ID>
+    <ID>MaxLineLength:AuthApiTest.kt:AuthApiTest$assertEquals(1, second.body&lt;io.github.slavikjunior.syncclip.server.contracts.dto.auth.CanaryAttemptResponse&gt;().remainingAttempts)</ID>
+    <ID>MaxLineLength:AuthApiTest.kt:AuthApiTest$assertEquals(2, first.body&lt;io.github.slavikjunior.syncclip.server.contracts.dto.auth.CanaryAttemptResponse&gt;().remainingAttempts)</ID>
+    <ID>MaxLineLength:AuthApiTest.kt:AuthApiTest$assertEquals(3, successAttempt.body&lt;io.github.slavikjunior.syncclip.server.contracts.dto.auth.CanaryAttemptResponse&gt;().remainingAttempts)</ID>
+    <ID>MaxLineLength:AuthApiTest.kt:AuthApiTest$assertTrue(ok.body&lt;io.github.slavikjunior.syncclip.server.contracts.dto.auth.AuthResponse&gt;().accessToken.isNotBlank())</ID>
+    <ID>MaxLineLength:AuthApiTest.kt:AuthApiTest$setBody(IntegrationSupport.loginRequest(register.email, register.password, IntegrationSupport.newDeviceId()))</ID>
+    <ID>MaxLineLength:AuthApiTest.kt:AuthApiTest$setBody(IntegrationSupport.loginRequest(request.email, password = request.password, deviceId = request.deviceId))</ID>
+    <ID>MaxLineLength:AuthApiTest.kt:AuthApiTest$setBody(io.github.slavikjunior.syncclip.server.contracts.dto.fcm.FcmRegisterRequest(request.deviceId, "fcm-token-1"))</ID>
+    <ID>MaxLineLength:AuthApiTest.kt:AuthApiTest$val</ID>
+    <ID>MaxLineLength:AuthApiTest.kt:AuthApiTest$val body = unread.body&lt;io.github.slavikjunior.syncclip.server.contracts.dto.notification.UnreadNotificationsResponse&gt;()</ID>
+    <ID>MaxLineLength:JsonLogEncoder.kt:JsonLogEncoder.Companion$"(?i)(\"(?:password|refreshToken|accessToken|encryptedPayload|encryptedCanary|inviteToken|token)\"\\s*:\\s*)\"[^\"]*\""</ID>
+    <ID>MaxLineLength:JsonLogEncoder.kt:JsonLogEncoder.Companion$Regex("(?i)\\b(password|refreshToken|accessToken|encryptedPayload|encryptedCanary|inviteToken)\\s*=\\s*[^\\s&amp;,\"}]+")</ID>
+    <ID>MaxLineLength:StatusPages.kt:logger.error("request failed callId=$requestId error=${cause.code.restCode} type=${cause.javaClass.simpleName}")</ID>
+    <ID>MaxLineLength:StatusPages.kt:val message = catalog.message(ErrorCode.METHOD_NOT_ALLOWED.restCode, catalog.locale(call.request.acceptLanguage()))</ID>
+    <ID>MaxLineLength:SyncApiTest.kt:SyncApiTest$assertEquals("device_mismatch", response.body&lt;io.github.slavikjunior.syncclip.server.contracts.error.ErrorResponse&gt;().error)</ID>
+    <ID>SwallowedException:MessageCatalog.kt:MessageCatalog$e: MissingResourceException</ID>
+    <ID>TooGenericExceptionCaught:Main.kt:e: Exception</ID>
+  </CurrentIssues>
+</SmellBaseline>
