@@ -1,0 +1,70 @@
+# MVP: один инстанс сервера + PostgreSQL 16. TLS — на reverse proxy (Caddy/Nginx).
+# PROD-профиль обязателен: без TRUSTED_PROXIES сервер не стартует (SEC-05/SEC-14).
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: syncclip
+      POSTGRES_USER: syncclip
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U syncclip -d syncclip"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  server:
+    build: .
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: prod
+      SERVER_HOST: 0.0.0.0
+      SERVER_PORT: 8080
+      DB_URL: jdbc:postgresql://db:5432/syncclip
+      DB_USER: syncclip
+      DB_PASSWORD: ${DB_PASSWORD:?set DB_PASSWORD}
+      JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
+      # Список адресов/CIDR reverse proxy; X-Forwarded-For принимается только от них.
+      TRUSTED_PROXIES: ${TRUSTED_PROXIES:?set TRUSTED_PROXIES (reverse proxy addresses)}
+      PUSH_PROVIDER: ${PUSH_PROVIDER:-noop}
+      AUTH_PROVIDER: ${AUTH_PROVIDER:-password}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      FIREBASE_JWKS_URL: ${FIREBASE_JWKS_URL:-https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com}
+      FIREBASE_REQUIRE_VERIFIED_EMAIL: ${FIREBASE_REQUIRE_VERIFIED_EMAIL:-true}
+      # Каталог ./secrets монтируется read-only; файл fcm.json нужен при PUSH_PROVIDER=fcm.
+      FCM_CREDENTIALS_PATH: ${FCM_CREDENTIALS_PATH:-/run/secrets/fcm.json}
+      LOG_JSON: "true"
+      LOG_LEVEL: INFO
+      DB_MIGRATE_ON_START: "true"
+      METRICS_ENABLED: ${METRICS_ENABLED:-false}
+      METRICS_TOKEN: ${METRICS_TOKEN:-}
+    volumes:
+      - ./secrets:/run/secrets:ro
+    ports:
+      - "127.0.0.1:8080:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/health/ready"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    mem_limit: 1g
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  pgdata: {}

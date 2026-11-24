@@ -1,0 +1,109 @@
+# ============================================================================
+# SyncClip Backend — version catalog
+# ============================================================================
+# Источник: docs/backend/VERSION_CATALOG_ADDITIONS.toml + Appendix A дизайна.
+# В каталоге только то, что реально используется сборкой.
+# ============================================================================
+
+[versions]
+kotlin            = "2.4.21"
+ktor              = "3.6.1"
+exposed           = "1.6.1"
+postgresql        = "42.7.7"
+hikaricp          = "6.3.0"
+koin              = "4.2.2"
+serialization     = "1.13.0"
+coroutines        = "1.11.0"
+logback           = "1.5.18"
+javaJwt           = "4.6.2"
+junit             = "5.11.4"
+junitPlatform     = "1.11.4"
+slf4j             = "2.0.17"
+detekt            = "2.0.0-alpha.6"
+ktlint            = "14.2.0"
+archunit          = "1.5.1"
+snakeyaml         = "2.7"
+
+[libraries]
+# --- Kotlin ---
+kotlin-gradle-plugin             = { module = "org.jetbrains.kotlin:kotlin-gradle-plugin", version.ref = "kotlin" }
+detekt-gradle-plugin             = { module = "dev.detekt:detekt-gradle-plugin", version.ref = "detekt" }
+ktlint-gradle-plugin             = { module = "org.jlleitschuh.gradle:ktlint-gradle", version.ref = "ktlint" }
+archunit-junit5                  = { module = "com.tngtech.archunit:archunit-junit5", version.ref = "archunit" }
+snakeyaml                        = { module = "org.yaml:snakeyaml", version.ref = "snakeyaml" }
+kotlin-stdlib                     = { module = "org.jetbrains.kotlin:kotlin-stdlib", version.ref = "kotlin" }
+kotlin-serialization-plugin      = { module = "org.jetbrains.kotlin:kotlin-serialization", version.ref = "kotlin" }
+kotlinx-coroutines-core           = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
+kotlinx-coroutines-test           = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
+kotlinx-serialization-json        = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "serialization" }
+
+# --- Ktor server ---
+ktor-server-core                  = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
+ktor-server-netty                 = { module = "io.ktor:ktor-server-netty", version.ref = "ktor" }
+ktor-server-content-negotiation   = { module = "io.ktor:ktor-server-content-negotiation", version.ref = "ktor" }
+ktor-server-websockets            = { module = "io.ktor:ktor-server-websockets", version.ref = "ktor" }
+ktor-server-auth                  = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
+ktor-server-auth-jwt              = { module = "io.ktor:ktor-server-auth-jwt", version.ref = "ktor" }
+ktor-server-status-pages          = { module = "io.ktor:ktor-server-status-pages", version.ref = "ktor" }
+ktor-server-call-logging          = { module = "io.ktor:ktor-server-call-logging", version.ref = "ktor" }
+ktor-server-call-id               = { module = "io.ktor:ktor-server-call-id", version.ref = "ktor" }
+ktor-server-forwarded-header      = { module = "io.ktor:ktor-server-forwarded-header", version.ref = "ktor" }
+ktor-server-body-limit            = { module = "io.ktor:ktor-server-body-limit", version.ref = "ktor" }
+ktor-server-compression           = { module = "io.ktor:ktor-server-compression", version.ref = "ktor" }
+ktor-server-default-headers       = { module = "io.ktor:ktor-server-default-headers", version.ref = "ktor" }
+ktor-serialization-kotlinx-json   = { module = "io.ktor:ktor-serialization-kotlinx-json", version.ref = "ktor" }
+
+# --- Ktor test ---
+ktor-server-test-host             = { module = "io.ktor:ktor-server-test-host", version.ref = "ktor" }
+ktor-client-content-negotiation   = { module = "io.ktor:ktor-client-content-negotiation", version.ref = "ktor" }
+ktor-client-websockets            = { module = "io.ktor:ktor-client-websockets", version.ref = "ktor" }
+
+# --- Koin ---
+koin-ktor                         = { module = "io.insert-koin:koin-ktor", version.ref = "koin" }
+koin-core                         = { module = "io.insert-koin:koin-core", version.ref = "koin" }
+
+# --- Database ---
+exposed-core                      = { module = "org.jetbrains.exposed:exposed-core", version.ref = "exposed" }
+exposed-jdbc                      = { module = "org.jetbrains.exposed:exposed-jdbc", version.ref = "exposed" }
+exposed-java-time                 = { module = "org.jetbrains.exposed:exposed-java-time", version.ref = "exposed" }
+postgresql                        = { module = "org.postgresql:postgresql", version.ref = "postgresql" }
+hikaricp                          = { module = "com.zaxxer:HikariCP", version.ref = "hikaricp" }
+
+# --- Security ---
+java-jwt                          = { module = "com.auth0:java-jwt", version.ref = "javaJwt" }
+
+# --- Logging ---
+logback-classic                   = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
+slf4j-api                         = { module = "org.slf4j:slf4j-api", version.ref = "slf4j" }
+
+# --- Tests ---
+kotlin-test-junit5                = { module = "org.jetbrains.kotlin:kotlin-test-junit5", version.ref = "kotlin" }
+junit-jupiter                     = { module = "org.junit.jupiter:junit-jupiter", version.ref = "junit" }
+junit-jupiter-api                 = { module = "org.junit.jupiter:junit-jupiter-api", version.ref = "junit" }
+junit-platform-launcher           = { module = "org.junit.platform:junit-platform-launcher", version.ref = "junitPlatform" }
+
+[bundles]
+ktor-server = [
+    "ktor-server-core",
+    "ktor-server-netty",
+    "ktor-server-content-negotiation",
+    "ktor-server-websockets",
+    "ktor-server-auth",
+    "ktor-server-auth-jwt",
+    "ktor-server-status-pages",
+    "ktor-server-call-logging",
+    "ktor-server-call-id",
+    "ktor-server-forwarded-header",
+    "ktor-server-body-limit",
+    "ktor-server-compression",
+    "ktor-server-default-headers",
+    "ktor-serialization-kotlinx-json",
+]
+exposed = ["exposed-core", "exposed-jdbc", "exposed-java-time"]
+ktor-test = [
+    "ktor-server-test-host",
+    "ktor-client-content-negotiation",
+    "ktor-client-websockets",
+    "kotlin-test-junit5",
+    "junit-jupiter",
+]

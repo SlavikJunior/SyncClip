@@ -1,0 +1,23 @@
+# Контекст сборки: без секретов, артефактов сборки и IDE-мусора (OPS-02).
+.git
+.gitignore
+.gradle
+.kotlin
+.idea
+*.iml
+**/build
+**/.kotlin
+.env
+.env.*
+!.env.example
+*.log
+*.pem
+*.p12
+*.jks
+secrets
+kotlin-compiler-embeddable-*.jar
+swarm-report
+README.md
+docs
+scripts
+build

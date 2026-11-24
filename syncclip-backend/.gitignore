@@ -1,0 +1,11 @@
+build/
+.gradle/
+.kotlin/
+*.log
+.env
+.env.local
+# 56 MiB артефакт компилятора не используется сборкой (аудит §11).
+kotlin-compiler-embeddable-*.jar
+secrets/
+# Ресурсы приложения — часть исходников, корневой `*.properties` их не должен скрывать.
+!server/app/src/main/resources/i18n/*.properties

@@ -1,0 +1,59 @@
+# Prometheus alert rules для SyncClip Backend (OPS-07).
+# Подключение: rule_files: ["alerts.yml"] в prometheus.yml.
+# Метрики отдаёт GET /metrics (METRICS_ENABLED=true, Bearer METRICS_TOKEN).
+groups:
+  - name: syncclip-backend
+    rules:
+      - alert: SyncClipBackendDown
+        expr: up{job="syncclip-backend"} == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "SyncClip backend недоступен"
+          description: "Prometheus не может скрейпить {{ $labels.instance }} более 2 минут."
+
+      - alert: SyncClipMetricsMissing
+        expr: absent(syncclip_ws_active_connections{job="syncclip-backend"})
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Метрики SyncClip не поступают"
+          description: "Проверьте METRICS_ENABLED/METRICS_TOKEN и scrape-конфиг."
+
+      - alert: SyncClipAuthFailureSpike
+        expr: sum(rate(syncclip_auth_failures_total{job="syncclip-backend"}[5m])) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Всплеск неудачных аутентификаций"
+          description: "Более 1 отказа/сек за 5 минут: возможен brute-force или сбой клиентов."
+
+      - alert: SyncClipOfflineQueueBacklog
+        expr: syncclip_offline_queue_depth{job="syncclip-backend"} > 10000
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Рост offline queue"
+          description: "Глубина очереди {{ $value }} пакетов более 10 минут."
+
+      - alert: SyncClipSlowWsConsumers
+        expr: sum(rate(syncclip_ws_slow_consumer_total{job="syncclip-backend"}[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Много медленных WS-клиентов"
+          description: "Сессии закрываются по slow_consumer; проверьте сеть/backpressure."
+
+      - alert: SyncClipPushRetryableSpike
+        expr: sum(rate(syncclip_push_retryable_total{job="syncclip-backend"}[5m])) > 10
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "FCM retryable-ошибки"
+          description: "Проблемы с FCM/OAuth: push может теряться (см. логи push)."

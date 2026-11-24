@@ -1,0 +1,11 @@
+# Пример scrape-конфига Prometheus для SyncClip Backend (OPS-07).
+# Метрики защищены токеном; используйте отдельный токен только для Prometheus.
+scrape_configs:
+  - job_name: syncclip-backend
+    metrics_path: /metrics
+    scheme: http
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/syncclip-metrics-token
+    static_configs:
+      - targets: ["127.0.0.1:8080"]
