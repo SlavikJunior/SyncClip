@@ -248,6 +248,10 @@ syncclip-backend/
 
 В дереве появятся оба проекта: `syncclip-client` (Android/iOS/Desktop-приложения, модуль `:app:androidApp`) и `syncclip-backend` (Ktor-сервер, модуль `:server:app`). Настройка хранится в локальном `.idea/` и в git не входит — на новой машине шаги 2–3 нужно повторить.
 
+Готовые конфигурации запуска: `androidApp` (модуль `SyncClip.app.androidApp`), `desktopApp`, `backend`, `iosApp`.
+
+Если Android Studio показывает старые конфигурации с ошибкой `Module not specified` (следствие прежней структуры репозитория): закрыть IDE, выполнить `make ide-reset`, открыть корень заново и сделать Sync.
+
 ### Запуск клиента
 
 ```bash

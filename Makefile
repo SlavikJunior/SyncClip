@@ -15,7 +15,7 @@ CLIENT_DIR  := syncclip-client
 BACKEND_DIR := syncclip-backend
 GRADLE_CLIENT := ./$(CLIENT_DIR)/gradlew -p $(CLIENT_DIR)
 
-.PHONY: check check-client check-backend check-graph check-arch check-visual record-visual
+.PHONY: check check-client check-backend check-graph check-arch check-visual record-visual ide-reset
 
 check: check-client check-backend
 
@@ -44,3 +44,10 @@ record-visual:
 		:feature:history:impl:recordRoborazziJvm \
 		:feature:sync:impl:recordRoborazziJvm \
 		:feature:settings:impl:recordRoborazziJvm
+
+# Сброс локального состояния IDE после изменения структуры репозитория.
+# Запускать при ЗАКРЫТОМ Android Studio, затем открыть корень и сделать Sync.
+ide-reset:
+	@rm -f .idea/workspace.xml
+	@rm -rf .idea/caches
+	@echo "Локальное состояние IDE сброшено: .idea/workspace.xml и .idea/caches удалены."
