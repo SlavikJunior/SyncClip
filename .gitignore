@@ -1,5 +1,9 @@
 # ============================================================================
-# SyncClip — .gitignore
+# SyncClip — корневой .gitignore
+#
+# Репозиторий-контейнер: syncclip-client/ (KMP) и syncclip-backend/ (Ktor).
+# Здесь только общие правила; сборка, IDE-артефакты и платформенные файлы
+# игнорируются в syncclip-client/.gitignore и syncclip-backend/.gitignore.
 # ============================================================================
 
 # OS
@@ -12,7 +16,7 @@ Trash*
 __MACOSX
 .e4xmt
 
-# JetBrains IDEs (IntelliJ IDEA, Android Studio)
+# JetBrains IDEs (корневые проекты открываются отдельно)
 .idea/
 *.iml
 *.ipr
@@ -20,45 +24,6 @@ __MACOSX
 *.iws.xml
 *.prj
 out/
-build/
-
-# Gradle
-.gradle/
-!gradle/wrapper/gradle-wrapper.jar
-!gradle/libs.versions.toml
-
-# Android
-*.apk
-*.aab
-*.apks
-local.properties
-*.keystore
-*.jks
-app/debug/
-app/release/
-app/intermediate/
-
-# Kotlin Multiplatform / Compose Multiplatform
-.konan/
-.kotlin/
-
-# iOS
-*.xcodeproj/
-xcuserdata/
-*.xcuserstate
-Pods/
-Podfile.lock
-*.xcworkspacedata
-
-# macOS / Desktop
-*.app
-*.dmg
-*.zip
-
-# Logs
-*.log
-*.log.*
-logs/
 
 # Environment / secrets
 .env
@@ -66,21 +31,11 @@ logs/
 .env.*.local
 auth.json
 secrets.gradle
-*.properties
-!gradle.properties
-!gradle/wrapper/gradle-wrapper.properties
 
-# Coverage
-coverage/
-*.exec
-jacocoTestReport/
-
-# Test reports
-test-results/
-
-# Swift Package Manager
-.build/
-.swiftpm/
+# Logs
+*.log
+*.log.*
+logs/
 
 # Temporary files
 *.tmp
@@ -88,11 +43,14 @@ test-results/
 *.swp
 *~
 
-# Xcode
-*.xcscheme
-xcshareddata/xcschemes/
+# Общие артефакты сборки на любой глубине (страховка)
+.gradle/
+build/
+.kotlin/
 
-# Project files
+# ============================================================================
+# Локальные служебные материалы (не часть продукта)
+# ============================================================================
 docs/*
 AGENTS.md
 /swarm-report/

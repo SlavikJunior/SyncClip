@@ -9,7 +9,9 @@
             "compose-hot-reload": {
                 "type": "local",
                 "command": [
-                    "./gradlew",
+                    "./syncclip-client/gradlew",
+                    "-p",
+                    "syncclip-client",
                     "--no-daemon",
                     "--quiet",
                     "--console=plain",

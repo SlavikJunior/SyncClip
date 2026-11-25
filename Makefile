@@ -1,36 +1,45 @@
-# Единая точка проверки Android/KMP-проекта.
+# Единая точка проверки репозитория-контейнера SyncClip.
 #
-# Состав — из docs/PROFILE.md (раздел «Проверка»), здесь только команды.
-# Шаблон: ~/dev/arch-standard/templates/Makefile
+# Два независимых Gradle-проекта:
+#   syncclip-client/  — KMP-клиент (Android, iOS, Desktop)
+#   syncclip-backend/ — Ktor-сервер (JVM)
 #
-#   make check          — всё сразу
-#   make check-gradle   — компиляция и тесты
-#   make check-graph    — граф зависимостей модулей (INV-01…03, INV-24)
+#   make check          — клиент + сервер
+#   make check-client   — компиляция и тесты клиента
+#   make check-backend  — компиляция и тесты сервера (интеграционные — с TEST_DB_URL)
+#   make check-graph    — граф зависимостей модулей клиента (INV-01…03, INV-24)
 #   make check-arch     — Konsist: слои, соглашения, покрытие проверок
 #   make check-visual   — Roborazzi: сравнение с baseline
 
-.PHONY: check check-gradle check-graph check-arch check-visual record-visual
+CLIENT_DIR  := syncclip-client
+BACKEND_DIR := syncclip-backend
+GRADLE_CLIENT := ./$(CLIENT_DIR)/gradlew -p $(CLIENT_DIR)
 
-check: check-gradle
+.PHONY: check check-client check-backend check-graph check-arch check-visual record-visual
 
-check-gradle:
-	./gradlew check
+check: check-client check-backend
+
+check-client:
+	$(GRADLE_CLIENT) check
+
+check-backend:
+	$(MAKE) -C $(BACKEND_DIR) check
 
 check-graph:
-	./gradlew checkModuleDependencies
+	$(GRADLE_CLIENT) checkModuleDependencies
 
 check-arch:
-	./gradlew :core:architecture-tests:test
+	$(GRADLE_CLIENT) :core:architecture-tests:test
 
 check-visual:
-	./gradlew \
+	$(GRADLE_CLIENT) \
 		:core:designsystem:verifyRoborazziJvm \
 		:feature:history:impl:verifyRoborazziJvm \
 		:feature:sync:impl:verifyRoborazziJvm \
 		:feature:settings:impl:verifyRoborazziJvm
 
 record-visual:
-	./gradlew \
+	$(GRADLE_CLIENT) \
 		:core:designsystem:recordRoborazziJvm \
 		:feature:history:impl:recordRoborazziJvm \
 		:feature:sync:impl:recordRoborazziJvm \

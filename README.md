@@ -130,9 +130,23 @@ SyncClip автоматически синхронизирует текстов�
 
 ---
 
-## 📦 Структура репозиториев
+## 📦 Структура репозитория
 
-Проект разделён на **два независимых репозитория**:
+Репозиторий — контейнер с двумя независимыми Gradle-проектами:
+
+```
+SyncClip/                  # корень: общие файлы, без Gradle-сборки
+├── syncclip-client/       # KMP-клиент (Android, iOS, Desktop)
+├── syncclip-backend/      # Ktor-сервер (JVM)
+├── docs/                  # общая документация (PASSPORT, ARCHITECTURE, ADR)
+├── .github/               # CI (backend.yml)
+├── .opencode/             # конфигурация агентов
+├── Makefile               # make check — проверки обоих проектов
+└── README.md
+```
+
+Каждый проект открывается в IDE отдельно и имеет собственные `settings.gradle.kts`,
+`gradle/`, `build-logic/`, `local.properties`, `.idea/`, `.gradle/`.
 
 ### syncclip-client
 
@@ -227,12 +241,14 @@ syncclip-backend/
 ### Запуск клиента
 
 ```bash
+cd syncclip-client
+
 # Android
 ./gradlew :app:androidApp:assembleDebug
 ./gradlew :app:androidApp:installDebug
 
-# iOS (через Xcode)
-open iosApp/SyncClip.xcodeproj
+# iOS (через Xcode, проект генерируется XcodeGen)
+cd app/iosApp && xcodegen generate && open iosApp.xcodeproj
 
 # Desktop
 ./gradlew :app:desktopApp:run

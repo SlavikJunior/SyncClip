@@ -1,0 +1,45 @@
+# ============================================================================
+# syncclip-client — .gitignore (KMP: Android, iOS, Desktop)
+# Общие правила (OS, IDE, секреты) — в корневом .gitignore.
+# ============================================================================
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/libs.versions.toml
+
+# Kotlin Multiplatform / Compose Multiplatform
+.konan/
+.kotlin/
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Android
+local.properties
+*.apk
+*.aab
+*.apks
+*.keystore
+*.jks
+
+# iOS
+*.xcodeproj/
+xcuserdata/
+*.xcuserstate
+Pods/
+Podfile.lock
+*.xcworkspacedata
+*.xcscheme
+xcshareddata/xcschemes/
+
+# Desktop
+*.app
+*.dmg
+
+# Roborazzi / тестовые отчёты
+test-results/
