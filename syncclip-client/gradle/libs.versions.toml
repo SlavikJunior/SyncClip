@@ -53,6 +53,12 @@ kotlinxCoroutinesTest = "1.11.0"
 
 # Firebase Admin (server)
 firebaseAdmin = "9.9.0"
+jmdns = "3.6.1"
+jnativehook = "2.2.2"
+
+# Firebase client (Google Play services / Android + google-services plugin)
+firebaseBom = "35.2.0"
+googleServicesPlugin = "4.6.0"
 
 # PostgreSQL / Exposed (server)
 exposed = "1.6.1"
@@ -160,10 +166,23 @@ ktor-client-mock = { group = "io.ktor", name = "ktor-client-mock", version.ref =
 ktor-client-content-negotiation = { group = "io.ktor", name = "ktor-client-content-negotiation", version.ref = "ktorClient" }
 ktor-serialization-kotlinx-json = { group = "io.ktor", name = "ktor-serialization-kotlinx-json", version.ref = "ktorClient" }
 ktor-client-logging = { group = "io.ktor", name = "ktor-client-logging", version.ref = "ktorClient" }
+ktor-client-websockets = { group = "io.ktor", name = "ktor-client-websockets", version.ref = "ktorClient" }
+ktor-server-core = { group = "io.ktor", name = "ktor-server-core", version.ref = "ktorServer" }
+ktor-server-cio = { group = "io.ktor", name = "ktor-server-cio", version.ref = "ktorServer" }
+ktor-server-websockets = { group = "io.ktor", name = "ktor-server-websockets", version.ref = "ktorServer" }
 
 # Images
 coil-compose = { group = "io.coil-kt.coil3", name = "coil-compose", version.ref = "coil" }
 coil-network-ktor3 = { group = "io.coil-kt.coil3", name = "coil-network-ktor3", version.ref = "coil" }
+
+# Firebase (клиент; версии пакетов задаёт BOM)
+# LAN discovery (Desktop): ADR-003 называет JmDNS реализацией для JVM.
+jmdns = { group = "org.jmdns", name = "jmdns", version.ref = "jmdns" }
+jnativehook = { group = "com.github.kwhat", name = "jnativehook", version.ref = "jnativehook" }
+
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+firebase-messaging = { group = "com.google.firebase", name = "firebase-messaging" }
 
 # Kotlin
 kotlin-test = { group = "org.jetbrains.kotlin", name = "kotlin-test", version.ref = "kotlin" }
@@ -201,6 +220,9 @@ koin-plugin = { id = "org.jetbrains.kotlin.plugin.koin", version.ref = "kotlin" 
 
 # Serialization
 serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin" }
+
+# Firebase
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServicesPlugin" }
 
 # Spotless
 spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
