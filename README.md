@@ -238,6 +238,16 @@ syncclip-backend/
 - **Xcode:** 15+ (для iOS)
 - **PostgreSQL:** 16+ (для локальной разработки сервера)
 
+### Открытие в Android Studio / IntelliJ IDEA
+
+Корень репозитория открывается как один workspace с двумя **linked Gradle-проектами**:
+
+1. `File → Open` → каталог `SyncClip` (корень).
+2. Если проекты не подхватились автоматически: окно **Gradle** → `+` → **Link Gradle Project** → `syncclip-client`, затем `syncclip-backend`.
+3. **Sync Project with Gradle Files**.
+
+В дереве появятся оба проекта: `syncclip-client` (Android/iOS/Desktop-приложения, модуль `:app:androidApp`) и `syncclip-backend` (Ktor-сервер, модуль `:server:app`). Настройка хранится в локальном `.idea/` и в git не входит — на новой машине шаги 2–3 нужно повторить.
+
 ### Запуск клиента
 
 ```bash
