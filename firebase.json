@@ -1,0 +1,11 @@
+{
+  "auth": {
+    "providers": {
+      "emailPassword": true,
+      "googleSignIn": {
+        "oAuthBrandDisplayName": "SyncClip",
+        "supportEmail": "rvr280206@gmail.com"
+      }
+    }
+  }
+}

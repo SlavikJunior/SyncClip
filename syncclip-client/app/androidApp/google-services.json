@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "309517983717",
+    "project_id": "syncclip-app",
+    "storage_bucket": "syncclip-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:309517983717:android:0524f973de9eab67e5990c",
+        "android_client_info": {
+          "package_name": "io.github.slavikjunior.syncclip"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "309517983717-f30pu3uq9stptttkmrdl8rtdilaqmo2i.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "io.github.slavikjunior.syncclip",
+            "certificate_hash": "c33160c5c6e66ab39527b7ef06e007f92eb60df8"
+          }
+        },
+        {
+          "client_id": "309517983717-u3n2acdig059v9ef8d52br50va8k9s39.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAo2XVQlo6-6MFoAVhd5umTmVScoORyiCY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "309517983717-u3n2acdig059v9ef8d52br50va8k9s39.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "309517983717-j2rmh71cb6p464csq7ak89bcahnjlrpv.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "io.github.slavikjunior.syncclip"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
