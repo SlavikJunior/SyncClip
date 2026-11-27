@@ -47,7 +47,18 @@ internal class ObservedClipboardGateway(
             injectedText = text
             injectedAtMillis = now
         }
-        systemClipboard.write(text)
+        try {
+            systemClipboard.write(text)
+        } catch (failure: Throwable) {
+            // Запись не удалась — буфера не изменилось, и метки эха быть не
+            // должно: иначе следующее РЕАЛЬНОЕ копирование того же текста
+            // пользователем было бы отброшено как собственное эхо.
+            mutex.withLock {
+                injectedText = null
+                injectedAtMillis = 0L
+            }
+            throw failure
+        }
     }
 
     override fun lastLocalCaptureMillis(): Long = lastCaptureMillis.value

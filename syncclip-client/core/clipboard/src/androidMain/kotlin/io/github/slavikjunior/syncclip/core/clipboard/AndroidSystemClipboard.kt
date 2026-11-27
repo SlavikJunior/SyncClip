@@ -50,12 +50,15 @@ internal class AndroidSystemClipboard(
         manager.setPrimaryClip(ClipData.newPlainText(CLIP_LABEL, text))
     }
 
-    private fun readClipText(): String? {
-        val clip = manager.primaryClip ?: return null
-        if (clip.itemCount == 0) return null
-        val item = clip.getItemAt(0) ?: return null
-        return item.coerceToText(context)?.toString()?.takeIf { it.isNotBlank() }
-    }
+    private fun readClipText(): String? = runCatching {
+        // Android 10+ бросает SecurityException, если приложение потеряло фокус
+        // между подпиской и чтением: это не ошибка программиста, а штатное
+        // ограничение ОС — считаем, что текста нет.
+        val clip = manager.primaryClip ?: return@runCatching null
+        if (clip.itemCount == 0) return@runCatching null
+        val item = clip.getItemAt(0) ?: return@runCatching null
+        item.coerceToText(context)?.toString()?.takeIf { it.isNotBlank() }
+    }.getOrNull()
 
     private companion object {
         const val CLIP_LABEL = "SyncClip"
