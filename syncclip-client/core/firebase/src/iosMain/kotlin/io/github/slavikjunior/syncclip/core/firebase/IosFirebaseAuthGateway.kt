@@ -4,6 +4,7 @@ import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 
 /**
@@ -32,14 +33,14 @@ internal class IosFirebaseAuthGateway(
         delegateOrFailure { delegate ->
             awaitCallback { completion ->
                 delegate.signUpWithEmail(email = email, password = password, completion = completion)
-            }
+            } ?: FirebaseAuthResult.Failure(FirebaseAuthFailure.NETWORK)
         }
 
     override suspend fun signInWithEmail(email: String, password: String): FirebaseAuthResult =
         delegateOrFailure { delegate ->
             awaitCallback { completion ->
                 delegate.signInWithEmail(email = email, password = password, completion = completion)
-            }
+            } ?: FirebaseAuthResult.Failure(FirebaseAuthFailure.NETWORK)
         }
 
     override suspend fun signInWithGoogle(
@@ -52,19 +53,26 @@ internal class IosFirebaseAuthGateway(
                 accessToken = accessToken,
                 completion = completion,
             )
-        }
+        } ?: FirebaseAuthResult.Failure(FirebaseAuthFailure.NETWORK)
     }
 
     override suspend fun sendPasswordReset(email: String): FirebaseOperationResult {
         val delegate = bridge() ?: return FirebaseOperationResult.Failure(FirebaseAuthFailure.NOT_SUPPORTED)
-        return awaitCallback { completion -> delegate.sendPasswordReset(email = email, completion = completion) }
+        return awaitCallback { completion ->
+            delegate.sendPasswordReset(email = email, completion = completion)
+        } ?: FirebaseOperationResult.Failure(FirebaseAuthFailure.NETWORK)
     }
 
     override suspend fun idToken(forceRefresh: Boolean): String? {
         val delegate = bridge() ?: return null
-        return suspendCancellableCoroutine { continuation ->
-            delegate.idToken(forceRefresh = forceRefresh) { token ->
-                if (continuation.isActive) continuation.resume(token)
+        // Swift-мост может не вызвать completion (ошибка делегата, отмена
+        // системного диалога). Без таймаута корутина висит вечно, и экран
+        // входа остаётся с заблокированной кнопкой.
+        return withTimeoutOrNull(AUTH_TIMEOUT_MILLIS) {
+            suspendCancellableCoroutine { continuation ->
+                delegate.idToken(forceRefresh = forceRefresh) { token ->
+                    if (continuation.isActive) continuation.resume(token)
+                }
             }
         }
     }
@@ -85,8 +93,13 @@ internal class IosFirebaseAuthGateway(
 /** Ожидание ответа Swift-реализации без ручного `DispatchQueue`. */
 private suspend fun <T> awaitCallback(
     call: ((T) -> Unit) -> Unit,
-): T = suspendCancellableCoroutine { continuation ->
-    call { value ->
-        if (continuation.isActive) continuation.resume(value)
+): T? = withTimeoutOrNull(AUTH_TIMEOUT_MILLIS) {
+    suspendCancellableCoroutine { continuation ->
+        call { value ->
+            if (continuation.isActive) continuation.resume(value)
+        }
     }
 }
+
+/** Сколько ждём ответа Swift-моста, прежде чем считать операцию неудачной. */
+private const val AUTH_TIMEOUT_MILLIS = 30_000L

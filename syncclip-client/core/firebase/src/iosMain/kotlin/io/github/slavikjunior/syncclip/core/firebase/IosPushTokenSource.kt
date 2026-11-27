@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlin.coroutines.resume
 
 /**
@@ -28,22 +29,31 @@ internal class IosPushTokenSource(
 
     override suspend fun currentToken(): String? {
         val delegate = bridge() ?: return null
-        return suspendCancellableCoroutine { continuation ->
-            delegate.messagingToken { token ->
-                if (continuation.isActive) continuation.resume(token)
+        // Мост может не вызвать completion: без таймаута регистрация push
+        // повисала бы, а вместе с ней и корутина входа.
+        return withTimeoutOrNull(TOKEN_TIMEOUT_MILLIS) {
+            suspendCancellableCoroutine { continuation ->
+                delegate.messagingToken { token ->
+                    if (continuation.isActive) continuation.resume(token)
+                }
             }
         }
     }
 
     override suspend fun requestPermission(): Boolean {
         val delegate = bridge() ?: return false
-        return suspendCancellableCoroutine { continuation ->
-            delegate.requestNotificationPermission { granted ->
-                if (continuation.isActive) continuation.resume(granted)
+        return withTimeoutOrNull(TOKEN_TIMEOUT_MILLIS) {
+            suspendCancellableCoroutine { continuation ->
+                delegate.requestNotificationPermission { granted ->
+                    if (continuation.isActive) continuation.resume(granted)
+                }
             }
-        }
+        } ?: false
     }
 }
+
+/** Сколько ждём ответа Swift-моста по push-каналу. */
+private const val TOKEN_TIMEOUT_MILLIS = 15_000L
 
 /** Заглушка для iOS без установленного моста (используется в тестах). */
 internal object EmptyPushTokenSource : PushTokenSource {
