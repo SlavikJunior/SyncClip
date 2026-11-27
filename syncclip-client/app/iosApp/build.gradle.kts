@@ -14,12 +14,16 @@ kotlin {
         target.binaries.framework {
             baseName = "ComposeApp"
             isStatic = true
+            // Swift-мост iOS реализует Kotlin-контракт Firebase, поэтому типы
+            // :core:firebase должны попасть в заголовки фреймворка.
+            export(project(":core:firebase"))
         }
     }
 
     sourceSets {
         commonMain.dependencies {
             implementation(project(":app:common"))
+            api(project(":core:firebase"))
             implementation(libs.koin.core)
             implementation(compose.ui)
         }

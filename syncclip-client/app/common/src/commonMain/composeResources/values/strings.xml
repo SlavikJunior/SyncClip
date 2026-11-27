@@ -2,4 +2,19 @@
     <string name="nav_history">History</string>
     <string name="nav_sync">Sync</string>
     <string name="nav_settings">Settings</string>
+    <string name="e2ee_title">Unlock E2EE</string>
+    <string name="e2ee_subtitle">Enter the master password — the key is derived on this device and never sent to the server</string>
+    <string name="e2ee_password_label">Master password</string>
+    <string name="e2ee_unlock">Unlock</string>
+    <string name="e2ee_hint">The same password on every device — that is how they read each other\'s clipboard</string>
+    <string name="e2ee_error_invalid">Wrong master password</string>
+    <string name="e2ee_error_network">Server is unavailable, try again</string>
+    <string name="tray_open_history">Open history</string>
+    <string name="tray_pause">Pause sync</string>
+    <string name="tray_resume">Resume sync</string>
+    <string name="tray_exit">Quit SyncClip</string>
+    <string name="tray_status_online">SyncClip — online</string>
+    <string name="tray_status_offline">SyncClip — offline</string>
+    <string name="e2ee_locked">Input is locked. Try again in %1$s</string>
+    <string name="e2ee_attempts_left">Attempts left: %1$d</string>
 </resources>

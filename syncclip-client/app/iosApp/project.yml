@@ -4,6 +4,10 @@ options:
   deploymentTarget:
     iOS: "16.0"
   createIntermediateGroups: true
+packages:
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: "13.0.0"
 settings:
   base:
     ENABLE_USER_SCRIPT_SANDBOXING: NO
@@ -20,6 +24,20 @@ targets:
     platform: iOS
     sources:
       - path: iosApp
+    dependencies:
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseMessaging
+      - target: ShareExtension
+    entitlements:
+      path: iosApp/iosApp.entitlements
+      properties:
+        aps-environment: development
+        com.apple.security.application-groups:
+          - group.io.github.slavikjunior.syncclip
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)io.github.slavikjunior.syncclip
     info:
       path: iosApp/Info.plist
       properties:
@@ -29,6 +47,8 @@ targets:
         CADisableMinimumFrameDurationOnPhone: true
         UIApplicationSupportsIndirectInputEvents: true
         UILaunchScreen: {}
+        UIBackgroundModes:
+          - remote-notification
         NSAppTransportSecurity:
           NSAllowsLocalNetworking: true
         UISupportedInterfaceOrientations:
@@ -54,6 +74,37 @@ targets:
           if [ "YES" = "$OVERRIDE_KOTLIN_BUILD_IDE_SUPPORTED" ]; then exit 0; fi
           cd "$SRCROOT/../.."
           ./gradlew :app:iosApp:embedAndSignAppleFrameworkForXcode
+  ShareExtension:
+    type: app-extension
+    platform: iOS
+    sources:
+      - path: ShareExtension
+    info:
+      path: ShareExtension/Info.plist
+      properties:
+        CFBundleDisplayName: SyncClip Share
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.share-services
+          NSExtensionPrincipalClass: $(PRODUCT_MODULE_NAME).ShareViewController
+          NSExtensionAttributes:
+            NSExtensionActivationRule:
+              NSExtensionActivationSupportsText: true
+    entitlements:
+      path: ShareExtension/ShareExtension.entitlements
+      properties:
+        com.apple.security.application-groups:
+          - group.io.github.slavikjunior.syncclip
+        keychain-access-groups:
+          - $(AppIdentifierPrefix)io.github.slavikjunior.syncclip
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: io.github.slavikjunior.syncclip.share
+        PRODUCT_NAME: SyncClipShare
+        SWIFT_VERSION: "5.0"
+        TARGETED_DEVICE_FAMILY: "1,2"
+        SKIP_INSTALL: YES
+        CODE_SIGN_STYLE: Automatic
+
 schemes:
   iosApp:
     build:

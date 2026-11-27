@@ -19,6 +19,9 @@ compose.desktop {
         mainClass = "io.github.slavikjunior.syncclip.app.desktop.MainKt"
 
         nativeDistributions {
+            // DataStore Preferences (protobuf-lite) использует sun.misc.Unsafe
+            // из jdk.unsupported; без модуля запись настроек падает в runtime image.
+            modules("jdk.unsupported")
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb)
             packageName = "SyncClip"
             packageVersion = "1.0.0"
@@ -28,7 +31,11 @@ compose.desktop {
 
 dependencies {
     implementation(project(":app:common"))
+    implementation(project(":core:datastore"))
     implementation(compose.desktop.currentOs)
     implementation(libs.koin.core)
     implementation(libs.kotlinx.coroutines.swing)
+    implementation(libs.jnativehook)
+    testImplementation(libs.kotlin.test)
+    testImplementation(libs.junit)
 }

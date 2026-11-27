@@ -11,6 +11,8 @@ struct ComposeView: UIViewControllerRepresentable {
 
 @main
 struct SyncClipApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
+
     init() {
         MainViewControllerKt.startSyncClipKoin()
     }
