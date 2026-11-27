@@ -61,11 +61,12 @@ fun Route.authRoutes(
             val request = call.receive<FirebaseLoginRequest>()
             if (request.idToken.isBlank()) throw ValidationException("idToken", "empty")
             val identity = firebaseVerifier.verify(request.idToken)
-            val session = authService.firebaseLogin(
-                identity = identity,
-                command = request.toCommand(),
-                meta = call.requestMeta(ip),
-            )
+            val session =
+                authService.firebaseLogin(
+                    identity = identity,
+                    command = request.toCommand(),
+                    meta = call.requestMeta(ip),
+                )
             call.respond(
                 AuthResponse(
                     userId = session.userId,
@@ -111,17 +112,30 @@ fun Route.authRoutes(
         val request = call.receive<RefreshRequest>()
         if (request.refreshToken.isBlank()) throw ValidationException("refreshToken", "empty")
         when (val outcome = sessionService.refresh(request.refreshToken)) {
-            is RefreshOutcome.Success -> call.respond(
-                TokenPairDto(
-                    accessToken = outcome.tokens.accessToken,
-                    refreshToken = outcome.tokens.refreshToken,
-                ),
-            )
+            is RefreshOutcome.Success -> {
+                call.respond(
+                    TokenPairDto(
+                        accessToken = outcome.tokens.accessToken,
+                        refreshToken = outcome.tokens.refreshToken,
+                    ),
+                )
+            }
 
-            RefreshOutcome.Invalid -> throw UnauthorizedException(ErrorCode.TOKEN_INVALID)
-            RefreshOutcome.Expired -> throw UnauthorizedException(ErrorCode.TOKEN_EXPIRED)
-            RefreshOutcome.DeviceRevoked -> throw UnauthorizedException(ErrorCode.DEVICE_REVOKED)
-            is RefreshOutcome.Reused -> throw UnauthorizedException(ErrorCode.REFRESH_TOKEN_REUSED)
+            RefreshOutcome.Invalid -> {
+                throw UnauthorizedException(ErrorCode.TOKEN_INVALID)
+            }
+
+            RefreshOutcome.Expired -> {
+                throw UnauthorizedException(ErrorCode.TOKEN_EXPIRED)
+            }
+
+            RefreshOutcome.DeviceRevoked -> {
+                throw UnauthorizedException(ErrorCode.DEVICE_REVOKED)
+            }
+
+            is RefreshOutcome.Reused -> {
+                throw UnauthorizedException(ErrorCode.REFRESH_TOKEN_REUSED)
+            }
         }
     }
 
@@ -162,11 +176,12 @@ fun Route.authRoutes(
             val context = call.requireContext(deviceAuthenticator)
             rateLimiter.check(RateLimitScope.CANARY_ATTEMPT, context.userId)
             val request = call.receive<CanaryAttemptRequest>()
-            val remaining = masterPasswordService.reportAttempt(
-                context,
-                request.success,
-                call.requestMeta(clientIp(call)),
-            )
+            val remaining =
+                masterPasswordService.reportAttempt(
+                    context,
+                    request.success,
+                    call.requestMeta(clientIp(call)),
+                )
             call.respond(CanaryAttemptResponse(remainingAttempts = remaining))
         }
 

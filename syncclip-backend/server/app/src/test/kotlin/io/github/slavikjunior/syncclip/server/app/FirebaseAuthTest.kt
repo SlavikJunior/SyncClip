@@ -49,7 +49,6 @@ import kotlin.test.assertTrue
  * В firebase-режиме password register/login не регистрируются (404).
  */
 class FirebaseAuthTest {
-
     private lateinit var database: DatabaseFactory
     private lateinit var jwksServer: HttpServer
     private lateinit var jwksUrl: String
@@ -72,121 +71,148 @@ class FirebaseAuthTest {
     }
 
     @Test
-    fun `firebase identity creates account and session while password routes are disabled`() = testApplication {
-        application { module(firebaseConfig(), database) }
-        val client = jsonClient()
+    fun `firebase identity creates account and session while password routes are disabled`() =
+        testApplication {
+            application { module(firebaseConfig(), database) }
+            val client = jsonClient()
 
-        // password-маршруты в firebase-режиме отсутствуют → enumeration невозможен.
-        assertEquals(HttpStatusCode.NotFound, client.post("/v1/auth/register") { setBody("{}") }.status)
-        assertEquals(HttpStatusCode.NotFound, client.post("/v1/auth/login") { setBody("{}") }.status)
+            // password-маршруты в firebase-режиме отсутствуют → enumeration невозможен.
+            assertEquals(HttpStatusCode.NotFound, client.post("/v1/auth/register") { setBody("{}") }.status)
+            assertEquals(HttpStatusCode.NotFound, client.post("/v1/auth/login") { setBody("{}") }.status)
 
-        val token = firebaseToken(uid = "firebase-uid-1", email = "fb-1@example.com", verified = true)
-        val deviceId = IntegrationSupport.newDeviceId()
-        val response = client.post("/v1/auth/firebase") {
-            contentType(ContentType.Application.Json)
-            setBody(FirebaseLoginRequest(token, deviceId, "Pixel 8", "Android"))
+            val token = firebaseToken(uid = "firebase-uid-1", email = "fb-1@example.com", verified = true)
+            val deviceId = IntegrationSupport.newDeviceId()
+            val response =
+                client.post("/v1/auth/firebase") {
+                    contentType(ContentType.Application.Json)
+                    setBody(FirebaseLoginRequest(token, deviceId, "Pixel 8", "Android"))
+                }
+            assertEquals(HttpStatusCode.OK, response.status)
+            val session = response.body<AuthResponse>()
+            assertTrue(session.accessToken.isNotBlank())
+
+            val devices =
+                client.get("/v1/devices") {
+                    header(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
+                }
+            assertEquals(HttpStatusCode.OK, devices.status)
+            assertEquals(
+                deviceId,
+                devices
+                    .body<DeviceListDto>()
+                    .devices
+                    .single()
+                    .deviceId,
+            )
+
+            // Повторный вход тем же Firebase identity на другом устройстве — тот же аккаунт.
+            val secondDevice = IntegrationSupport.newDeviceId()
+            val second =
+                client
+                    .post("/v1/auth/firebase") {
+                        contentType(ContentType.Application.Json)
+                        setBody(FirebaseLoginRequest(token, secondDevice, "Pixel 9", "Android"))
+                    }.body<AuthResponse>()
+            assertEquals(session.userId, second.userId)
         }
-        assertEquals(HttpStatusCode.OK, response.status)
-        val session = response.body<AuthResponse>()
-        assertTrue(session.accessToken.isNotBlank())
-
-        val devices = client.get("/v1/devices") {
-            header(HttpHeaders.Authorization, "Bearer ${session.accessToken}")
-        }
-        assertEquals(HttpStatusCode.OK, devices.status)
-        assertEquals(deviceId, devices.body<DeviceListDto>().devices.single().deviceId)
-
-        // Повторный вход тем же Firebase identity на другом устройстве — тот же аккаунт.
-        val secondDevice = IntegrationSupport.newDeviceId()
-        val second = client.post("/v1/auth/firebase") {
-            contentType(ContentType.Application.Json)
-            setBody(FirebaseLoginRequest(token, secondDevice, "Pixel 9", "Android"))
-        }.body<AuthResponse>()
-        assertEquals(session.userId, second.userId)
-    }
 
     @Test
-    fun `invalid and unverified firebase tokens are rejected`() = testApplication {
-        application { module(firebaseConfig(), database) }
-        val client = jsonClient()
-        val deviceId = IntegrationSupport.newDeviceId()
+    fun `invalid and unverified firebase tokens are rejected`() =
+        testApplication {
+            application { module(firebaseConfig(), database) }
+            val client = jsonClient()
+            val deviceId = IntegrationSupport.newDeviceId()
 
-        val invalid = client.post("/v1/auth/firebase") {
-            contentType(ContentType.Application.Json)
-            setBody(FirebaseLoginRequest("not-a-jwt", deviceId, "Pixel", "Android"))
-        }
-        assertEquals(HttpStatusCode.Unauthorized, invalid.status)
-        assertEquals("firebase_token_invalid", invalid.body<ErrorResponse>().error)
+            val invalid =
+                client.post("/v1/auth/firebase") {
+                    contentType(ContentType.Application.Json)
+                    setBody(FirebaseLoginRequest("not-a-jwt", deviceId, "Pixel", "Android"))
+                }
+            assertEquals(HttpStatusCode.Unauthorized, invalid.status)
+            assertEquals("firebase_token_invalid", invalid.body<ErrorResponse>().error)
 
-        val unverified = firebaseToken(uid = "firebase-uid-2", email = "fb-2@example.com", verified = false)
-        val rejected = client.post("/v1/auth/firebase") {
-            contentType(ContentType.Application.Json)
-            setBody(FirebaseLoginRequest(unverified, deviceId, "Pixel", "Android"))
+            val unverified = firebaseToken(uid = "firebase-uid-2", email = "fb-2@example.com", verified = false)
+            val rejected =
+                client.post("/v1/auth/firebase") {
+                    contentType(ContentType.Application.Json)
+                    setBody(FirebaseLoginRequest(unverified, deviceId, "Pixel", "Android"))
+                }
+            assertEquals(HttpStatusCode.Forbidden, rejected.status)
+            assertEquals("email_not_verified", rejected.body<ErrorResponse>().error)
         }
-        assertEquals(HttpStatusCode.Forbidden, rejected.status)
-        assertEquals("email_not_verified", rejected.body<ErrorResponse>().error)
-    }
 
     @Test
-    fun `both mode lets desktop password account link to firebase login`() = testApplication {
-        application { module(bothConfig(), database) }
-        val client = jsonClient()
-        val email = "mixed-1@example.com"
-        val password = "MixedPassword123!"
+    fun `both mode lets desktop password account link to firebase login`() =
+        testApplication {
+            application { module(bothConfig(), database) }
+            val client = jsonClient()
+            val email = "mixed-1@example.com"
+            val password = "MixedPassword123!"
 
-        // Desktop (JVM без Firebase) регистрируется серверным паролем.
-        val desktop = client.post("/v1/auth/register") {
-            contentType(ContentType.Application.Json)
-            setBody(RegisterRequest(email, password, IntegrationSupport.newDeviceId(), "MacBook", "macOS"))
-        }
-        assertEquals(HttpStatusCode.Created, desktop.status)
-        val desktopSession = desktop.body<AuthResponse>()
+            // Desktop (JVM без Firebase) регистрируется серверным паролем.
+            val desktop =
+                client.post("/v1/auth/register") {
+                    contentType(ContentType.Application.Json)
+                    setBody(RegisterRequest(email, password, IntegrationSupport.newDeviceId(), "MacBook", "macOS"))
+                }
+            assertEquals(HttpStatusCode.Created, desktop.status)
+            val desktopSession = desktop.body<AuthResponse>()
 
-        // Android входит через Firebase с тем же email — сервер привязывает UID
-        // к существующему аккаунту, а не создаёт второй.
-        val token = firebaseToken(uid = "firebase-uid-mixed", email = email, verified = true)
-        val android = client.post("/v1/auth/firebase") {
-            contentType(ContentType.Application.Json)
-            setBody(FirebaseLoginRequest(token, IntegrationSupport.newDeviceId(), "Pixel 8", "Android"))
+            // Android входит через Firebase с тем же email — сервер привязывает UID
+            // к существующему аккаунту, а не создаёт второй.
+            val token = firebaseToken(uid = "firebase-uid-mixed", email = email, verified = true)
+            val android =
+                client.post("/v1/auth/firebase") {
+                    contentType(ContentType.Application.Json)
+                    setBody(FirebaseLoginRequest(token, IntegrationSupport.newDeviceId(), "Pixel 8", "Android"))
+                }
+            assertEquals(HttpStatusCode.OK, android.status)
+            assertEquals(desktopSession.userId, android.body<AuthResponse>().userId)
         }
-        assertEquals(HttpStatusCode.OK, android.status)
-        assertEquals(desktopSession.userId, android.body<AuthResponse>().userId)
-    }
 
     @Test
-    fun `password mode keeps firebase endpoint absent`() = testApplication {
-        application { module(IntegrationSupport.config(), database) }
-        val client = jsonClient()
-        val response = client.post("/v1/auth/firebase") {
-            contentType(ContentType.Application.Json)
-            setBody(FirebaseLoginRequest("token", IntegrationSupport.newDeviceId(), "Pixel", "Android"))
+    fun `password mode keeps firebase endpoint absent`() =
+        testApplication {
+            application { module(IntegrationSupport.config(), database) }
+            val client = jsonClient()
+            val response =
+                client.post("/v1/auth/firebase") {
+                    contentType(ContentType.Application.Json)
+                    setBody(FirebaseLoginRequest("token", IntegrationSupport.newDeviceId(), "Pixel", "Android"))
+                }
+            assertEquals(HttpStatusCode.NotFound, response.status)
         }
-        assertEquals(HttpStatusCode.NotFound, response.status)
-    }
 
     // ------------------------------------------------------------------ helpers
 
-    private fun firebaseConfig(): AppConfig = IntegrationSupport.config(
-        mapOf(
-            "AUTH_PROVIDER" to "firebase",
-            "FIREBASE_PROJECT_ID" to "test-project",
-            "FIREBASE_JWKS_URL" to jwksUrl,
-            "FIREBASE_REQUIRE_VERIFIED_EMAIL" to "true",
-        ),
-    )
+    private fun firebaseConfig(): AppConfig =
+        IntegrationSupport.config(
+            mapOf(
+                "AUTH_PROVIDER" to "firebase",
+                "FIREBASE_PROJECT_ID" to "test-project",
+                "FIREBASE_JWKS_URL" to jwksUrl,
+                "FIREBASE_REQUIRE_VERIFIED_EMAIL" to "true",
+            ),
+        )
 
-    private fun bothConfig(): AppConfig = IntegrationSupport.config(
-        mapOf(
-            "AUTH_PROVIDER" to "both",
-            "FIREBASE_PROJECT_ID" to "test-project",
-            "FIREBASE_JWKS_URL" to jwksUrl,
-            "FIREBASE_REQUIRE_VERIFIED_EMAIL" to "true",
-        ),
-    )
+    private fun bothConfig(): AppConfig =
+        IntegrationSupport.config(
+            mapOf(
+                "AUTH_PROVIDER" to "both",
+                "FIREBASE_PROJECT_ID" to "test-project",
+                "FIREBASE_JWKS_URL" to jwksUrl,
+                "FIREBASE_REQUIRE_VERIFIED_EMAIL" to "true",
+            ),
+        )
 
-    private fun firebaseToken(uid: String, email: String, verified: Boolean): String {
+    private fun firebaseToken(
+        uid: String,
+        email: String,
+        verified: Boolean,
+    ): String {
         val now = Instant.now()
-        return JWT.create()
+        return JWT
+            .create()
             .withIssuer("https://securetoken.google.com/test-project")
             .withAudience("test-project")
             .withSubject(uid)
@@ -213,15 +239,19 @@ class FirebaseAuthTest {
     }
 
     private fun loadPrivateKey(): RSAPrivateKey {
-        val pem = javaClass.getResource("/firebase/key.pem")!!.readText()
-            .replace("-----BEGIN PRIVATE KEY-----", "")
-            .replace("-----END PRIVATE KEY-----", "")
-            .replace("\\s".toRegex(), "")
+        val pem =
+            javaClass
+                .getResource("/firebase/key.pem")!!
+                .readText()
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replace("\\s".toRegex(), "")
         val bytes = Base64.getDecoder().decode(pem)
         return KeyFactory.getInstance("RSA").generatePrivate(PKCS8EncodedKeySpec(bytes)) as RSAPrivateKey
     }
 
-    private fun ApplicationTestBuilder.jsonClient(): HttpClient = createClient {
-        install(ContentNegotiation) { json(ServerJson) }
-    }
+    private fun ApplicationTestBuilder.jsonClient(): HttpClient =
+        createClient {
+            install(ContentNegotiation) { json(ServerJson) }
+        }
 }
