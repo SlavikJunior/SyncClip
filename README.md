@@ -2,9 +2,9 @@
 
 Кроссплатформенное приложение для мгновенной и безопасной синхронизации буфера обмена между личными устройствами с E2EE-шифрованием.
 
-[![Kotlin](https://img.shields.io/badge/Kotlin-2.0+-blue.svg)](https://kotlinlang.org)
-[![KMP](https://img.shields.io/badge/Kotlin_Multiplatform-2.0-blue.svg)](https://kotlinlang.org/docs/multiplatform.html)
-[![Compose](https://img.shields.io/badge/Compose_Multiplatform-1.7-green.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
+[![Kotlin](https://img.shields.io/badge/Kotlin-2.4.21-blue.svg)](https://kotlinlang.org)
+[![KMP](https://img.shields.io/badge/Kotlin_Multiplatform-2.4.21-blue.svg)](https://kotlinlang.org/docs/multiplatform.html)
+[![Compose](https://img.shields.io/badge/Compose_Multiplatform-1.12.2-green.svg)](https://www.jetbrains.com/lp/compose-multiplatform/)
 [![License](https://img.shields.io/badge/License-Proprietary-red.svg)]()
 
 ---
@@ -12,16 +12,18 @@
 ## 🎯 Обзор
 
 SyncClip автоматически синхронизирует текстовый буфер обмена между вашими устройствами:
-- 📱 **Android** — Share Sheet, Quick Settings Tile, автоматический захват
-- 🍎 **iOS** — Share Extension, автоматический захват при активном приложении
-- 💻 **Desktop** (Windows, macOS, Linux) — фоновый мониторинг, системный трей, глобальный хоткей
+- 📱 **Android** — автоматический захват, Share Sheet, Quick Settings Tile
+- 🍎 **iOS** — автоматический захват при активном приложении, Share Extension с немедленной E2EE-отправкой (fallback — очередь в App Group)
+- 💻 **Desktop** (Windows, macOS, Linux) — трей со статусом и паузой, автозапуск, глобальный `Ctrl/Cmd+Shift+V`, захват при скрытом окне
 
 **Ключевые особенности:**
-- 🔒 **E2EE (AES-256-GCM)** — сервер не видит содержимое буфера
-- ⚡ **LAN P2P** — прямая передача в локальной сети (< 200 мс)
-- ☁️ **WAN Relay** — автоматический fallback через сервер при отсутствии прямого соединения
-- 📝 **Локальная история** — до 200 записей с закреплением и поиском
+- 🔒 **E2EE (AES-256-GCM)** — сервер не видит содержимое буфера; ключ из мастер-пароля (PBKDF2 100k) и canary
+- ☁️ **WAN Relay** — WebSocket `/v1/sync`, офлайн-очередь, ACK, реконнект с backoff
+- ⚡ **LAN P2P** — mDNS/NSD, параллельный unicast, ACK ≤ 300 мс, fallback на сервер
+- 📝 **Локальная история** — настраиваемые лимиты (5–200 записей, 1 ч–30 дней, 1–100 МБ), закрепление, поиск
 - 🔕 **Offline режим** — остановка синхронизации одним кликом
+- 🔄 **Авто-refresh токена** — `401` на REST повторяется после ротации пары, WebSocket переподключается отдельно
+- 🔐 **Защита мастер-пароля** — остаток попыток и таймер блокировки (3/5 мин → 3/5 мин → 3/2 ч), без запросов во время lockout
 
 ---
 
@@ -69,28 +71,86 @@ SyncClip автоматически синхронизирует текстов�
 
 ---
 
+## 📋 Захват буфера
+
+Конвейер реализован в `:core:clipboard` + `:feature:sync:impl`:
+
+```
+системный буфер → SystemClipboard (Android listener / iOS changeCount / AWT)
+    → ClipboardGateway: пустой текст, 512 КиБ, эхо собственной вставки, дубли
+    → debounce 100 мс → Room (история) → исходящий поток (только в Online)
+```
+
+- **Android:** `ClipboardManager.addPrimaryClipChangedListener`; Android 10+ отдаёт
+  буфер только приложению с фокусом — фоновый захват не делаем (запрещено
+  паспортом, §5.4).
+- **iOS:** опрос `UIPasteboard.changeCount` каждые 400 мс; iOS 14+ показывает
+  системную плашку при чтении — работает при активном приложении.
+- **Desktop:** опрос AWT-буфера каждые 300 мс (`FlavorListener` ненадёжен).
+- **Входящий текст** обрабатывает `DefaultClipboardIncomingSink`: дедупликация по
+  `eventId`, запрет вставки в течение 500 мс после локального копирования, учёт
+  тумблеров Online/авто-вставки; доставка — LAN TCP или WAN WebSocket.
+
+Проверка:
+
+```bash
+cd syncclip-client
+./gradlew :core:clipboard:jvmTest        # правила + реальный буфер macOS/Windows/Linux
+./gradlew :core:clipboard:iosSimulatorArm64Test  # очередь Share Extension (pending/sent)
+./gradlew :shared:crypto:jvmTest         # векторы NIST + сверка с javax.crypto
+./gradlew :shared:network:jvmTest        # exp из JWT, авто-refresh по 401 (MockEngine)
+./gradlew :core:di:jvmTest                # DI-граф без циклов, refresh через SessionRefresher
+./gradlew :core:lan:jvmTest              # кадры + TCP loopback; mDNS: SYNCCLIP_MDNS_TEST=1
+./gradlew :core:datastore:jvmTest        # ключ 600/hydrate, лимиты истории и диапазоны
+./gradlew :feature:auth:impl:jvmTest     # canary, refresh, Desktop email/пароль
+./gradlew :feature:history:impl:jvmTest  # история, вытеснение по настройкам
+./gradlew :feature:settings:impl:jvmTest # устройства, тема, лимиты истории FR-4.3
+./gradlew :app:common:jvmTest            # таймер блокировки мастер-пароля FR-1.4
+./gradlew :feature:sync:impl:jvmTest     # конвейер, LAN+WAN транспорт, два клиента
+./gradlew :app:desktopApp:test           # глобальный хоткей Ctrl/Cmd+Shift+V
+```
+
+E2E против настоящего сервера (нужны Docker и PostgreSQL — см. `docs/DATA_FLOWS.md`, раздел 3.4):
+
+```bash
+SYNCCLIP_E2E_URL=http://localhost:18080 ./gradlew :feature:sync:impl:jvmTest --tests '*BackendRelayE2eTest*'
+SYNCCLIP_E2E_URL=http://localhost:18080 ./gradlew :feature:sync:impl:jvmTest --tests '*MasterPasswordLockoutE2eTest*'
+SYNCCLIP_E2E_URL=http://localhost:18080 ./gradlew :feature:auth:impl:jvmTest --tests '*DesktopPasswordAuthE2eTest*'
+SYNCCLIP_E2E_URL=http://localhost:18080 ./gradlew :feature:auth:impl:jvmTest --tests '*BackendTokenRefreshE2eTest*'
+```
+
+---
+
 ## 🔒 Безопасность
 
-### E2EE Flow
+### E2EE Flow (реализовано)
 
-1. **Регистрация:**
+1. **Разблокировка:**
    ```
-   User → Мастер-пароль → PBKDF2(100k iterations) → AES-256 ключ
-   Ключ сохраняется в Keychain/Keystore
-   Canary = AES-GCM("syncclip-canary-" + UUID, ключ) → сервер
+   Мастер-пароль → PBKDF2-HMAC-SHA256(salt=userId, 100k) → ключ 32 Б
+   → GET /v1/auth/canary → AES-GCM-decrypt → проверка "syncclip-canary-"
+   (первое устройство: canary создаётся через POST /v1/auth/canary)
    ```
+   Ключ сохраняется в защищённом хранилище: Android Keystore (envelope AES/GCM),
+   iOS Keychain, Desktop — файл `~/.syncclip/e2ee.key` с правами `rw-------`.
+   Повторный ввод мастер-пароля нужен только на новом устройстве.
 
 2. **Отправка пакета:**
    ```
-   Текст → AES-GCM(текст, ключ, randomIV) → Base64(IV + ciphertext + authTag)
-   Пакет {eventId, encryptedPayload, payloadHash} → LAN P2P / Сервер
+   Текст → AES-256-GCM → Base64(IV 12 + ciphertext + tag 16) = encryptedPayload
+   payloadHash = SHA-256(открытый текст, hex)
+   SYNC_EVENT {eventId, originDeviceId, encryptedPayload, payloadHash, timestamp}
    ```
 
 3. **Получение пакета:**
    ```
-   Пакет → AES-GCM-Decrypt(encryptedPayload, ключ) → Текст
-   Проверка: SHA256(текст) == payloadHash
+   decrypt(encryptedPayload) → SHA-256(текст) == payloadHash?
+   дедупликация eventId (5 мин) → история → авто-вставка → ACK
    ```
+
+Криптография — `:shared:crypto` на чистом Kotlin (CryptoKit недоступен из
+Kotlin/Native, javax.crypto — только JVM/Android). На JVM она сверяется с
+`javax.crypto` на 50 случайных пакетах и векторах NIST.
 
 **Что сервер НЕ знает:**
 - ❌ Содержимое текста (только зашифрованный payload)
@@ -106,24 +166,27 @@ SyncClip автоматически синхронизирует текстов�
 | Категория | Технология                                          |
 |-----------|-----------------------------------------------------|
 | **Язык** | Kotlin 2.4.21+                                      |
-| **UI** | Compose Multiplatform 1.7+                          |
+| **UI** | Compose Multiplatform 1.12.2                        |
 | **Архитектура** | Clean Architecture + MVI                            |
 | **DI** | Koin                                                |
 | **Сеть** | Ktor Client (HTTP/WebSocket)                        |
-| **БД** | Room KMP 3.0+                                       |
+| **БД** | Room KMP 2.8.5                                      |
 | **Настройки** | Jetpack DataStore (Preferences)                     |
 | **Кэш** | io.github.slavikjunior.kache                        |
-| **Криптография** | AES-256-GCM (javax.crypto / CryptoKit)              |
-| **LAN Discovery** | mDNS/NSD (Android NsdManager, Apple Bonjour, JmDNS) |
+| **Авторизация** | Firebase Auth (Email/Password, Google) → JWT сервера; Desktop — серверный email/пароль (`AUTH_PROVIDER=both`) |
+| **Push** | Firebase Cloud Messaging (Android, iOS)             |
+| **Криптография** | AES-256-GCM + PBKDF2-HMAC-SHA256 + SHA-256 (`:shared:crypto`, чистый Kotlin) |
+| **Транспорт** | WAN: Ktor Client WebSockets `/v1/sync`; LAN: TCP-unicast с ACK и fallback на сервер |
+| **LAN Discovery** | mDNS/NSD (Android NsdManager, Apple NSNetService, JmDNS) |
 
 ### Сервер (syncclip-backend)
 
 | Категория | Технология |
 |-----------|---------|
-| **Язык** | Kotlin 2.4.21+ |
-| **Фреймворк** | Ktor 3.0+ |
+| **Язык** | Kotlin 2.4.21 |
+| **Фреймворк** | Ktor 3.6.1 (Netty) |
 | **БД** | PostgreSQL 16+ |
-| **ORM** | Exposed |
+| **ORM** | Exposed 1.6.1 |
 | **Авторизация** | JWT (ktor-auth-jwt) |
 | **Push** | Firebase Cloud Messaging (Admin SDK) |
 | **Мониторинг** | Micrometer + Prometheus |
@@ -153,71 +216,67 @@ SyncClip/                  # корень: общие файлы, без Gradle-
 ```
 syncclip-client/
 ├── :shared                    # Общий код для всех платформ
-│   ├── :crypto               # AES-GCM, PBKDF2, Canary
-│   ├── :model                # Data classes (ClipboardEvent, SyncPacket, Device)
-│   ├── :network              # Ktor Client, LAN Discovery (expect/actual)
-│   └── :util                 # UUID, timestamp, hash utils
+│   ├── :model                # Модели и маршруты (ClipboardPayload, Device, NavKey)
+│   ├── :network              # Единственная точка создания Ktor-клиента (+ WebSocket)
+│   └── :crypto               # AES-256-GCM, PBKDF2, SHA-256 (чистый Kotlin + CSPRNG)
 ├── :core                      # Инфраструктурный слой
-│   ├── :database             # Room KMP (DAO, Entities, Migrations)
-│   ├── :datastore            # DataStore (Settings)
+│   ├── :clipboard            # Системный буфер: Android/iOS/JVM, эхо, лимит 512 КиБ
+│   ├── :lan                  # LAN P2P: mDNS/NSD, TCP-сервер/клиент, кадры
+│   ├── :database             # Room KMP (история, отложенные изменения устройств)
+│   ├── :datastore            # DataStore (сессия JWT, deviceId, Online/авто-вставка)
+│   ├── :firebase             # Firebase Auth + FCM (Android SDK / iOS Swift-мост)
 │   ├── :cache                # Kache wrapper
-│   └── :di                   # Koin modules
-├── :feature                   # Feature-модули (MVI)
-│   ├── :auth                 # Login, Register, MasterPassword
-│   ├── :sync                 # SyncCoordinator, TransportUnion
-│   ├── :history              # HistoryList, Search, Pin/Unpin
-│   └── :settings             # Settings, Limits, Online/Offline toggle
+│   ├── :designsystem         # Тема, компоненты Compose
+│   ├── :di                   # Koin-модули (composition root)
+│   └── :architecture-tests   # Konsist-проверки инвариантов
+├── :feature                   # Feature-модули (MVI), у каждой api/impl
+│   ├── :auth                 # Вход через Firebase → JWT сервера
+│   ├── :sync                 # Захват буфера, статус, дедупликация
+│   ├── :history              # История, поиск, pin, удаление
+│   └── :settings             # Устройства, тема
 └── :app                       # Платформенные точки входа
-    ├── :androidApp           # MainActivity, ShareActivity, QuickSettingsTile
-    ├── :iosApp               # SwiftUI wrapper, Share Extension
-    └── :desktopApp           # System Tray, Global Hotkey, Clipboard Monitor
+    ├── :common               # Общий Compose-shell и composition root
+    ├── :androidApp           # Application, MainActivity, FCM-сервис
+    ├── :iosApp               # SwiftUI-обёртка
+    └── :desktopApp           # Compose Desktop main
 ```
 
 ### syncclip-backend
 
 ```
 syncclip-backend/
-├── src/main/kotlin/
-│   ├── Application.kt        # Ktor entry point
-│   ├── routes/
-│   │   ├── AuthRoutes.kt     # POST /auth/register, /auth/login
-│   │   ├── SyncRoutes.kt     # GET /sync/pending
-│   │   └── WebSocketRoute.kt # WebSocket /sync
-│   ├── handlers/
-│   │   └── WebSocketHandler.kt
-│   ├── repositories/
-│   │   ├── UserRepository.kt
-│   │   ├── DeviceRepository.kt
-│   │   └── OfflineQueueRepository.kt
-│   └── services/
-│       └── FCMService.kt
-└── src/main/resources/
-    └── application.conf
+├── server/contracts            # DTO, ErrorCode, WS-сообщения, порты
+├── server/core/{config,security,database,push}
+├── server/feature/{auth,devices,sync,notifications}
+└── server/app                  # Main, Ktor-плагины, Koin, health, метрики, jobs
 ```
 
 ---
 
 ## 🎯 Roadmap
 
-### MVP (Must Have) — текущий этап ✅
+### MVP (Must Have) — текущий этап
 
 - [x] Документация (PASSPORT.md, ARCHITECTURE.md, ADR)
-- [ ] Клиент: авторизация (Email + Password, JWT)
-- [ ] Клиент: E2EE (мастер-пароль, canary-валидация)
-- [ ] Клиент: гибридная синхронизация (LAN P2P + Ktor Relay)
-- [ ] Клиент: локальная история (Room KMP, лимиты, вытеснение)
-- [ ] Сервер: REST API (auth, devices, pending packets)
-- [ ] Сервер: WebSocket Relay + офлайн-очередь
-- [ ] Сервер: FCM-уведомления (неудачные попытки входа)
-- [ ] Desktop: системный трей, автозапуск, глобальный хоткей
-- [ ] Android: Share Sheet, Quick Settings Tile
-- [ ] iOS: Share Extension
+- [x] Клиент: авторизация через Firebase Auth (Email/Password) → JWT сервера
+- [x] Клиент: FCM-токен и регистрация на сервере (`POST /fcm/register`)
+- [x] Клиент: захват буфера (Android/iOS/Desktop), защита от эха, лимит 512 КиБ
+- [x] Клиент: локальная история (Room KMP, вытеснение, поиск, pin)
+- [x] Клиент: тумблеры Online/Offline и авто-вставки (DataStore)
+- [x] Клиент: E2EE (мастер-пароль, PBKDF2, canary, AES-256-GCM)
+- [x] Клиент: WAN-транспорт (WebSocket `/v1/sync`, ACK, backoff, canary)
+- [x] Клиент: LAN P2P (mDNS/NSD + параллельный unicast, ACK ≤ 300 мс, fallback)
+- [x] Клиент: Android Share Sheet, Quick Settings Tile, iOS Share Extension (немедленная отправка через общий Keychain + App Group)
+- [x] Сервер: REST API (auth, devices, pending packets)
+- [x] Сервер: WebSocket Relay + офлайн-очередь
+- [x] Сервер: FCM-уведомления (неудачные попытки входа)
+- [x] Desktop: системный трей, автозапуск, глобальный хоткей
 
 ### Phase 2 (Should Have)
 
 - [ ] Пауза синхронизации на 15 мин / 1 час
-- [ ] Поиск и фильтр в истории
-- [ ] Unit-тесты (80%+ coverage)
+- [x] Поиск и фильтр в истории
+- [ ] Unit-тесты (80%+ coverage; покрытие не измерялось)
 - [ ] E2E-тесты на реальных устройствах
 
 ### Phase 3 (Could Have)
@@ -250,7 +309,7 @@ syncclip-backend/
 
 Готовые конфигурации запуска: `androidApp` (модуль `SyncClip.app.androidApp`), `desktopApp`, `backend`, `iosApp`.
 
-Если Android Studio показывает старые конфигурации с ошибкой `Module not specified` (следствие прежней структуры репозитория): закрыть IDE, выполнить `make ide-reset`, открыть корень заново и сделать Sync.
+Если дерево проекта выглядит неверно (виден весь домашний каталог, старые модули, ошибки `Module not specified`): закрыть IDE, выполнить `make ide-reset`, открыть корень заново и сделать Sync. Команда удаляет модель проекта (`workspace.xml`, `.iml`, кэш модели IDE), но сохраняет привязку Gradle-проектов (`gradle.xml`) и run-конфигурации.
 
 ### Запуск клиента
 
@@ -264,8 +323,12 @@ cd syncclip-client
 # iOS (через Xcode, проект генерируется XcodeGen)
 cd app/iosApp && xcodegen generate && open iosApp.xcodeproj
 
-# Desktop
+# Desktop: вход по email/паролю через сервер (Firebase на JVM недоступен),
+# трей, автозапуск, Ctrl/Cmd+Shift+V.
+# Адрес сервера по умолчанию http://localhost:8080; переопределяется
+# SYNCCLIP_API_BASE_URL (например, второй инстанс на :8081).
 ./gradlew :app:desktopApp:run
+./gradlew :app:desktopApp:createDistributable  # упакованное приложение
 ```
 
 ### Запуск сервера
