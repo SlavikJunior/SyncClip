@@ -26,6 +26,10 @@ interface ClipboardEventDao {
     )
     suspend fun count(query: String): Int
 
+    /** Суммарный объём текста в байтах UTF-8 — для лимита памяти FR-4.3. */
+    @Query("SELECT COALESCE(SUM(LENGTH(CAST(text AS BLOB))), 0) FROM clipboard_events")
+    suspend fun totalBytes(): Long
+
     @Query("SELECT * FROM clipboard_events WHERE id = :id")
     suspend fun findById(id: String): ClipboardEventEntity?
 

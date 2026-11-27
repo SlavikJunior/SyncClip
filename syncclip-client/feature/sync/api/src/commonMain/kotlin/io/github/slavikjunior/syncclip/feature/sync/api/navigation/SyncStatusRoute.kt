@@ -4,4 +4,4 @@ import io.github.slavikjunior.syncclip.shared.model.NavKey
 import kotlinx.serialization.Serializable
 
 @Serializable
-data object SyncStatusRoute : NavKey
+public data object SyncStatusRoute : NavKey

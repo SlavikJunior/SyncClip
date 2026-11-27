@@ -22,6 +22,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -48,6 +49,9 @@ import io.github.slavikjunior.syncclip.feature.sync.impl.presentation.state.Sync
 import io.github.slavikjunior.syncclip.shared.model.DeviceIcon
 import org.jetbrains.compose.resources.stringResource
 import syncclip.feature.sync.impl.generated.resources.Res
+import syncclip.feature.sync.impl.generated.resources.sync_auto_insert
+import syncclip.feature.sync.impl.generated.resources.sync_auto_insert_hint
+import syncclip.feature.sync.impl.generated.resources.sync_capture_now
 import syncclip.feature.sync.impl.generated.resources.sync_devices
 import syncclip.feature.sync.impl.generated.resources.sync_devices_count
 import syncclip.feature.sync.impl.generated.resources.sync_done_title
@@ -210,7 +214,54 @@ private fun SyncHero(
                 state = if (state.isOnline) StatusPillState.ONLINE else StatusPillState.OFFLINE,
                 icon = SyncClipIconKind.WIFI,
             )
+            HorizontalDivider(color = scheme.outlineVariant)
+            AutoInsertRow(
+                enabled = state.autoInsert,
+                onToggle = { onIntent(SyncIntent.ToggleAutoInsert) },
+            )
+            OutlinedButton(
+                onClick = { onIntent(SyncIntent.CaptureCurrent) },
+                shape = MaterialTheme.shapes.extraLarge,
+            ) {
+                SyncClipIcon(
+                    kind = SyncClipIconKind.CLIPBOARD,
+                    contentDescription = null,
+                    size = 16.dp,
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(text = stringResource(Res.string.sync_capture_now))
+            }
         }
+    }
+}
+
+/** FR-2.10: переключатель авто-вставки живёт рядом с тумблером Online. */
+@Composable
+private fun AutoInsertRow(
+    enabled: Boolean,
+    onToggle: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(SyncClipSpacing.md),
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(Res.string.sync_auto_insert),
+                style = MaterialTheme.typography.titleSmall,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+            Text(
+                text = stringResource(Res.string.sync_auto_insert_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        Switch(
+            checked = enabled,
+            onCheckedChange = { onToggle() },
+        )
     }
 }
 

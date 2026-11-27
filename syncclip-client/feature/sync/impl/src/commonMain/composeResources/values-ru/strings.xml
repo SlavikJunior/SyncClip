@@ -28,4 +28,7 @@
     <string name="sync_indicator_description">Состояние синхронизации: %1$s</string>
     <string name="sync_empty">Изменений буфера пока нет</string>
     <string name="sync_paused">Синхронизация на паузе</string>
+    <string name="sync_auto_insert">Вставлять автоматически</string>
+    <string name="sync_auto_insert_hint">Записывать полученный текст в системный буфер</string>
+    <string name="sync_capture_now">Захватить буфер сейчас</string>
 </resources>

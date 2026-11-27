@@ -20,7 +20,7 @@ internal class DebounceClipboardUseCaseTest {
         val emitted = mutableListOf<String>()
         val source = flow {
             repeat(5) { index ->
-                emit(SyncPacket("Text $index", copiedAtMillis = index.toLong()))
+                emit(SyncPacket(eventId = "event-$index", text = "Text $index", copiedAtMillis = index.toLong()))
                 kotlinx.coroutines.delay(30)
             }
         }
@@ -39,8 +39,8 @@ internal class DebounceClipboardUseCaseTest {
         // Arrange
         val emitted = mutableListOf<String>()
         val source = flow {
-            emit(SyncPacket("injected", 0L, isProgrammatic = true))
-            emit(SyncPacket("user copy", 1L))
+            emit(SyncPacket(eventId = "event-injected", text = "injected", copiedAtMillis = 0L, isProgrammatic = true))
+            emit(SyncPacket(eventId = "event-user", text = "user copy", copiedAtMillis = 1L))
         }
 
         // Act
