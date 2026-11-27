@@ -33,6 +33,10 @@ public object JwtExpiry {
         val json = payload.decodeToString()
         val match = EXP_REGEX.find(json) ?: return null
         val seconds = match.groupValues[1].toLongOrNull() ?: return null
+        // `exp` — недоверенное поле. Абсурдное значение (год 300 000 000)
+        // переполняет умножение и даёт отрицательное время: токен навсегда
+        // становится «протухшим» и клиент обновляет его на каждом запросе.
+        if (seconds !in 0..MAX_EPOCH_SECONDS) return null
         return seconds * 1_000
     }
 
@@ -78,4 +82,10 @@ public object JwtExpiry {
     }
 
     private const val ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/"
+
+    /**
+     * Предел `exp`: 5138 год. `Long.MAX_VALUE / 1000` не подходит — значение
+     * всё ещё бессмысленно для клиента, арифметика с `now` уже переполняется.
+     */
+    private const val MAX_EPOCH_SECONDS = 100_000_000_000L
 }

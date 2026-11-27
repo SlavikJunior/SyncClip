@@ -103,7 +103,13 @@ public class SyncClipHttpClient(
                 contentType = ContentType.Application.Json,
             )
         }
-        install(WebSockets)
+        install(WebSockets) {
+            // Сервер не должен присылать кадры больше полезной нагрузки паспорта
+            // (512 КиБ + base64 + JSON). Без лимита скомпрометированный relay
+            // или прокси может прислать кадр в сотни мегабайт, и клиент упадёт
+            // по OOM до того, как применит проверку размера после расшифровки.
+            maxFrameSize = MAX_FRAME_BYTES
+        }
         install(Logging) {
             // Только метод/URL/статус: тела запросов не логируются (SEC-06).
             logger = object : Logger {
@@ -159,5 +165,11 @@ public class SyncClipHttpClient(
     private companion object {
         const val REFRESH_PATH = "/auth/refresh"
         const val AUTHORIZATION_PREFIX = "Bearer "
+
+        /**
+         * Тот же лимит, что у LAN-кадров: 512 КиБ нагрузки + base64 + JSON.
+         * Держится в двух местах осознанно — модули не зависят друг от друга.
+         */
+        const val MAX_FRAME_BYTES = 1024L * 1024L
     }
 }

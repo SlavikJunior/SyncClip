@@ -41,4 +41,17 @@ internal class JwtExpiryTest {
         assertFalse(JwtExpiry.isFresh("not-a-jwt", nowMillis = 0))
         assertFalse(JwtExpiry.isFresh("a.%%%.c", nowMillis = 0))
     }
+
+    /**
+     * `exp`, умноженный на 1000, не должен переполняться: иначе токен навсегда
+     * «протухает» (отрицательное время) и обновляется на каждом запросе.
+     */
+    @Test
+    fun `absurd exp is rejected instead of overflowing`() {
+        // {"exp":9223372036854776}
+        val absurd = "eyJleHAiOjkyMjMzNzIwMzY4NTQ3NzZ9"
+
+        assertEquals(null, JwtExpiry.expiresAtMillis(token(absurd)))
+        assertFalse(JwtExpiry.isFresh(token(absurd), nowMillis = 1_000_000))
+    }
 }
