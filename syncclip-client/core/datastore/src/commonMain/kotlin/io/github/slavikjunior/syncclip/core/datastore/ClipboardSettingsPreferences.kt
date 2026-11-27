@@ -4,9 +4,11 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 
@@ -20,15 +22,30 @@ internal class ClipboardSettingsPreferences(
     private val dataStore: DataStore<Preferences>,
 ) : ClipboardSettingsStore {
 
-    override val state: Flow<ClipboardSettings> = dataStore.data.map { preferences ->
-        ClipboardSettings(
-            isOnline = preferences[IS_ONLINE] ?: true,
-            autoInsert = preferences[AUTO_INSERT] ?: true,
-            maxEntries = preferences[MAX_ENTRIES] ?: ClipboardSettings.DEFAULT_MAX_ENTRIES,
-            ttlHours = preferences[TTL_HOURS] ?: ClipboardSettings.DEFAULT_TTL_HOURS,
-            maxBytes = preferences[MAX_BYTES] ?: ClipboardSettings.DEFAULT_MAX_BYTES,
-        )
-    }
+    override val state: Flow<ClipboardSettings> = dataStore.data
+        // Битый файл настроек (краш при записи, «нет места», ручная правка) не
+        // должен ронять коллекторов: `viewModelScope.launch { state.collect }`
+        // на Android убил бы процесс, а транспорты перезапускались бы вечно.
+        // Как у [E2eeLockoutPreferences]: считаем, что настроек нет.
+        .catch { emit(emptyPreferences()) }
+        .map { preferences ->
+            ClipboardSettings(
+                isOnline = preferences[IS_ONLINE] ?: true,
+                autoInsert = preferences[AUTO_INSERT] ?: true,
+                // Лимиты проверяются и на чтении: отрицательный `ttlHours` из
+                // повреждённого файла сделал бы cutoff в будущем, и вытеснение
+                // стёрло бы всю историю; невалидные байты — то же самое.
+                maxEntries = preferences[MAX_ENTRIES]
+                    ?.takeIf(HistoryLimitsRules::isValidEntries)
+                    ?: ClipboardSettings.DEFAULT_MAX_ENTRIES,
+                ttlHours = preferences[TTL_HOURS]
+                    ?.takeIf(HistoryLimitsRules::isValidTtlHours)
+                    ?: ClipboardSettings.DEFAULT_TTL_HOURS,
+                maxBytes = preferences[MAX_BYTES]
+                    ?.takeIf(HistoryLimitsRules::isValidBytes)
+                    ?: ClipboardSettings.DEFAULT_MAX_BYTES,
+            )
+        }
 
     override suspend fun current(): ClipboardSettings =
         runCatching { state.first() }.getOrDefault(ClipboardSettings())

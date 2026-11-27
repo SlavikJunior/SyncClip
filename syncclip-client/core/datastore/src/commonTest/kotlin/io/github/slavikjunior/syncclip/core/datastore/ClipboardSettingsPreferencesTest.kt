@@ -3,6 +3,8 @@ package io.github.slavikjunior.syncclip.core.datastore
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.core.emptyPreferences
+import androidx.datastore.preferences.core.intPreferencesKey
+import androidx.datastore.preferences.core.longPreferencesKey
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
@@ -88,6 +90,49 @@ internal class ClipboardSettingsPreferencesTest {
         assertEquals(1, settings.ttlHours)
         assertEquals(100L * 1024 * 1024, settings.maxBytes)
     }
+
+    @Test
+    fun `corrupted file falls back to defaults instead of throwing`() = runTest {
+        val broken = CorruptedPreferencesDataStore()
+
+        val settings = createClipboardSettingsStore(broken).current()
+
+        assertEquals(ClipboardSettings(), settings)
+    }
+
+    /**
+     * Валидация на записи не спасает от повреждённого файла: `ttlHours = 0`
+     * сделал бы cutoff в будущем, и вытеснение удалило бы всю историю.
+     */
+    @Test
+    fun `invalid limits read from disk are replaced by defaults`() = runTest {
+        val raw = InMemoryPreferencesDataStore()
+        raw.updateData { preferences ->
+            preferences.toMutablePreferences().apply {
+                this[intPreferencesKey("history.max_entries")] = -5
+                this[intPreferencesKey("history.ttl_hours")] = 0
+                this[longPreferencesKey("history.max_bytes")] = -1L
+            }
+        }
+
+        val settings = createClipboardSettingsStore(raw).current()
+
+        assertEquals(ClipboardSettings.DEFAULT_MAX_ENTRIES, settings.maxEntries)
+        assertEquals(ClipboardSettings.DEFAULT_TTL_HOURS, settings.ttlHours)
+        assertEquals(ClipboardSettings.DEFAULT_MAX_BYTES, settings.maxBytes)
+    }
+}
+
+/** DataStore, который бросает при чтении — как повреждённый файл настроек. */
+private class CorruptedPreferencesDataStore : DataStore<Preferences> {
+
+    override val data: Flow<Preferences> = kotlinx.coroutines.flow.flow {
+        throw IllegalStateException("corrupted preferences")
+    }
+
+    override suspend fun updateData(
+        transform: suspend (t: Preferences) -> Preferences,
+    ): Preferences = error("cannot write")
 }
 
 /** Минимальная замена DataStore для unit-тестов: те же контракты, без файлов. */
