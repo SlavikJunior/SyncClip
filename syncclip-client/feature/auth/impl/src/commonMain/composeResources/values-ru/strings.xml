@@ -1,0 +1,19 @@
+<resources>
+    <string name="auth_title">SyncClip</string>
+    <string name="auth_subtitle">Войдите, чтобы синхронизировать буфер между устройствами</string>
+    <string name="auth_email">Email</string>
+    <string name="auth_password">Пароль</string>
+    <string name="auth_sign_in">Войти</string>
+    <string name="auth_sign_up">Создать аккаунт</string>
+    <string name="auth_toggle_to_sign_up">Нет аккаунта? Зарегистрироваться</string>
+    <string name="auth_toggle_to_sign_in">Уже есть аккаунт? Войти</string>
+    <string name="auth_error_invalid_credentials">Неверный email или пароль</string>
+    <string name="auth_error_email_already_in_use">Этот email уже зарегистрирован</string>
+    <string name="auth_error_weak_password">Слишком короткий пароль: минимум 8 символов</string>
+    <string name="auth_error_invalid_email">Введите корректный email</string>
+    <string name="auth_error_email_not_verified">Подтвердите email и войдите снова</string>
+    <string name="auth_error_network">Нет связи с сервером</string>
+    <string name="auth_error_not_supported">Firebase-авторизация недоступна на этой платформе</string>
+    <string name="auth_error_unknown">Что-то пошло не так. Повторите попытку</string>
+    <string name="auth_error_invalid_input">Проверьте введённые данные</string>
+</resources>
