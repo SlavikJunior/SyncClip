@@ -4,6 +4,9 @@ plugins {
 }
 
 kotlin {
+    // Публичная поверхность api-модуля проверяется компилятором (INV-26).
+    explicitApi()
+
     sourceSets {
         commonMain.dependencies {
             implementation(project(":shared:model"))

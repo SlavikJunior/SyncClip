@@ -5,4 +5,4 @@ import kotlinx.serialization.Serializable
 
 /** Ключ главного экрана истории (Navigation 3, INV-18). */
 @Serializable
-data object HistoryRoute : NavKey
+public data object HistoryRoute : NavKey

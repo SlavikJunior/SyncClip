@@ -31,4 +31,24 @@
     <string name="settings_update_queued">Офлайн: изменение применятся при следующем подключении</string>
     <string name="settings_pending">Отложенных изменений: %1$d</string>
     <string name="settings_retry">Повторить сейчас</string>
+    <string name="settings_desktop">Компьютер</string>
+    <string name="settings_autostart">Запускать при входе</string>
+    <string name="settings_autostart_hint">Открывать SyncClip при входе в систему</string>
+    <string name="settings_history">Лимиты истории</string>
+    <string name="settings_history_hint">Вытесняются только незакреплённые записи</string>
+    <string name="settings_history_entries">Записей</string>
+    <string name="settings_history_entries_hint">5–200</string>
+    <string name="settings_history_ttl">Срок хранения, ч</string>
+    <string name="settings_history_ttl_hint">1–720 (до 30 дней)</string>
+    <string name="settings_history_bytes">Объём, МБ</string>
+    <string name="settings_history_bytes_hint">1–100</string>
+    <string name="settings_history_save">Сохранить лимиты</string>
+    <string name="settings_limits_error">Проверьте диапазоны: 5–200 записей, 1–720 ч, 1–100 МБ</string>
+    <string name="settings_limits_saved">Лимиты истории сохранены</string>
+    <string name="settings_icon_phone">Телефон</string>
+    <string name="settings_icon_tablet">Планшет</string>
+    <string name="settings_icon_laptop">Ноутбук</string>
+    <string name="settings_icon_desktop">Компьютер</string>
+    <string name="settings_icon_watch">Часы</string>
+    <string name="settings_icon_tv">ТВ</string>
 </resources>

@@ -19,7 +19,7 @@ import io.github.slavikjunior.syncclip.feature.history.impl.presentation.state.H
 import io.github.slavikjunior.syncclip.feature.history.impl.presentation.state.HistoryViewModel
 import org.jetbrains.compose.resources.getString
 import org.jetbrains.compose.resources.stringResource
-import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 /**
  * Route-слой: единственное место, где знаю про ViewModel и навигацию.
@@ -30,9 +30,8 @@ internal fun HistoryScreen(
     onOpenDetail: (String) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val repository: io.github.slavikjunior.syncclip.feature.history.impl.domain.repository.HistoryRepository = koinInject()
-    val deviceDirectory: io.github.slavikjunior.syncclip.shared.model.DeviceDirectory = koinInject()
-    val viewModel = remember { HistoryViewModel(repository, deviceDirectory) }
+    // ViewModel приходит из Koin: живёт в ViewModelStore и отменяет viewModelScope (INV-08).
+    val viewModel: HistoryViewModel = koinViewModel()
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val undoMessage = stringResource(Res.string.history_undo)

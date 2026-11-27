@@ -5,4 +5,4 @@ import kotlinx.serialization.Serializable
 
 /** В аргументах только ID: модель загружается в получателе (INV-18). */
 @Serializable
-data class HistoryDetailRoute(val eventId: String) : NavKey
+public data class HistoryDetailRoute(val eventId: String) : NavKey

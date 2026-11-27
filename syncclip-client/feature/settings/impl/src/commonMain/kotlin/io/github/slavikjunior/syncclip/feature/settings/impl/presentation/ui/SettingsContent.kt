@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,6 +20,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -27,6 +29,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -35,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -59,6 +63,20 @@ import syncclip.feature.settings.impl.generated.resources.Res
 import syncclip.feature.settings.impl.generated.resources.settings_appearance
 import syncclip.feature.settings.impl.generated.resources.settings_cancel
 import syncclip.feature.settings.impl.generated.resources.settings_devices
+import syncclip.feature.settings.impl.generated.resources.settings_autostart
+import syncclip.feature.settings.impl.generated.resources.settings_autostart_hint
+import syncclip.feature.settings.impl.generated.resources.settings_desktop
+import syncclip.feature.settings.impl.generated.resources.settings_history
+import syncclip.feature.settings.impl.generated.resources.settings_history_bytes
+import syncclip.feature.settings.impl.generated.resources.settings_history_bytes_hint
+import syncclip.feature.settings.impl.generated.resources.settings_history_entries
+import syncclip.feature.settings.impl.generated.resources.settings_history_entries_hint
+import syncclip.feature.settings.impl.generated.resources.settings_history_hint
+import syncclip.feature.settings.impl.generated.resources.settings_history_save
+import syncclip.feature.settings.impl.generated.resources.settings_history_ttl
+import syncclip.feature.settings.impl.generated.resources.settings_history_ttl_hint
+import syncclip.feature.settings.impl.generated.resources.settings_limits_error
+import syncclip.feature.settings.impl.generated.resources.settings_limits_saved
 import syncclip.feature.settings.impl.generated.resources.settings_devices_count
 import syncclip.feature.settings.impl.generated.resources.settings_devices_hint
 import syncclip.feature.settings.impl.generated.resources.settings_error_load
@@ -221,6 +239,83 @@ internal fun SettingsContent(
                                 }
                             }
                         }
+                    }
+                }
+            }
+
+            if (state.autoStartSupported) {
+                SectionHeader(title = stringResource(Res.string.settings_desktop))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    color = scheme.surface,
+                    border = BorderStroke(1.dp, scheme.outlineVariant),
+                ) {
+                    SettingsRow(
+                        title = stringResource(Res.string.settings_autostart),
+                        subtitle = stringResource(Res.string.settings_autostart_hint),
+                        icon = SyncClipIconKind.LAPTOP,
+                        trailing = {
+                            Switch(
+                                checked = state.autoStartEnabled,
+                                enabled = !state.isAutoStartBusy,
+                                onCheckedChange = { onIntent(DeviceIntent.ToggleAutoStart) },
+                            )
+                        },
+                    )
+                }
+            }
+
+            SectionHeader(title = stringResource(Res.string.settings_history))
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = MaterialTheme.shapes.large,
+                color = scheme.surface,
+                border = BorderStroke(1.dp, scheme.outlineVariant),
+            ) {
+                Column(
+                    modifier = Modifier.padding(SyncClipSpacing.md),
+                    verticalArrangement = Arrangement.spacedBy(SyncClipSpacing.sm),
+                ) {
+                    Text(
+                        text = stringResource(Res.string.settings_history_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant,
+                    )
+                    HistoryLimitField(
+                        label = stringResource(Res.string.settings_history_entries),
+                        hint = stringResource(Res.string.settings_history_entries_hint),
+                        value = state.maxEntriesInput,
+                        enabled = !state.isLimitsSaving,
+                        onValueChange = { onIntent(DeviceIntent.EntriesChanged(it)) },
+                    )
+                    HistoryLimitField(
+                        label = stringResource(Res.string.settings_history_ttl),
+                        hint = stringResource(Res.string.settings_history_ttl_hint),
+                        value = state.ttlHoursInput,
+                        enabled = !state.isLimitsSaving,
+                        onValueChange = { onIntent(DeviceIntent.TtlHoursChanged(it)) },
+                    )
+                    HistoryLimitField(
+                        label = stringResource(Res.string.settings_history_bytes),
+                        hint = stringResource(Res.string.settings_history_bytes_hint),
+                        value = state.maxBytesMbInput,
+                        enabled = !state.isLimitsSaving,
+                        onValueChange = { onIntent(DeviceIntent.MaxBytesMbChanged(it)) },
+                    )
+                    if (state.limitsError != null) {
+                        Text(
+                            text = stringResource(state.limitsError),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.error,
+                        )
+                    }
+                    Button(
+                        onClick = { onIntent(DeviceIntent.SaveHistoryLimits) },
+                        enabled = !state.isLimitsSaving,
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Text(text = stringResource(Res.string.settings_history_save))
                     }
                 }
             }
@@ -393,7 +488,7 @@ private fun RenameDeviceDialog(
                 )
                 DeviceKind.entries.forEach { icon ->
                     TextButton(onClick = { onIntent(DeviceIntent.IconSelected(icon)) }) {
-                        Text(text = icon.name)
+                        Text(text = stringResource(icon.labelRes()))
                     }
                 }
             }
@@ -448,4 +543,25 @@ private fun SettingsContentPreview() {
             onIntent = {},
         )
     }
+}
+
+/** Числовое поле лимита истории с подсказкой диапазона (FR-4.3). */
+@Composable
+private fun HistoryLimitField(
+    label: String,
+    hint: String,
+    value: String,
+    enabled: Boolean,
+    onValueChange: (String) -> Unit,
+) {
+    OutlinedTextField(
+        value = value,
+        onValueChange = { input -> onValueChange(input.filter { it.isDigit() }) },
+        modifier = Modifier.fillMaxWidth(),
+        label = { Text(text = label) },
+        supportingText = { Text(text = hint) },
+        singleLine = true,
+        enabled = enabled,
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+    )
 }

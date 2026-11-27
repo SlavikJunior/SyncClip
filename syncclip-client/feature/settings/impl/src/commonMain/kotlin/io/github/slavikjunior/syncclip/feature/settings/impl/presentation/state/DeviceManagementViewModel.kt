@@ -2,6 +2,9 @@ package io.github.slavikjunior.syncclip.feature.settings.impl.presentation.state
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.slavikjunior.syncclip.core.datastore.AutoStart
+import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettingsStore
+import io.github.slavikjunior.syncclip.core.datastore.HistoryLimitsRules
 import io.github.slavikjunior.syncclip.feature.settings.impl.domain.model.DeviceNameError
 import io.github.slavikjunior.syncclip.feature.settings.impl.domain.repository.DeviceRepository
 import io.github.slavikjunior.syncclip.feature.settings.impl.domain.usecase.ValidateDeviceNameUseCase
@@ -17,12 +20,16 @@ import kotlinx.coroutines.launch
 import syncclip.feature.settings.impl.generated.resources.Res
 import syncclip.feature.settings.impl.generated.resources.settings_error_invalid_name
 import syncclip.feature.settings.impl.generated.resources.settings_error_load
+import syncclip.feature.settings.impl.generated.resources.settings_limits_error
+import syncclip.feature.settings.impl.generated.resources.settings_limits_saved
 import syncclip.feature.settings.impl.generated.resources.settings_update_queued
 import syncclip.feature.settings.impl.generated.resources.settings_update_saved
 
 internal class DeviceManagementViewModel(
     private val repository: DeviceRepository,
     private val validateName: ValidateDeviceNameUseCase,
+    private val autoStart: AutoStart? = null,
+    private val settings: ClipboardSettingsStore? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DeviceManagementUiState())
@@ -41,6 +48,77 @@ internal class DeviceManagementViewModel(
             DeviceIntent.Save -> save()
             DeviceIntent.DismissDialog -> _state.update { it.copy(editingDeviceId = null) }
             DeviceIntent.DismissError -> _state.update { it.copy(error = null) }
+            DeviceIntent.ToggleAutoStart -> toggleAutoStart()
+            is DeviceIntent.EntriesChanged -> _state.update {
+                it.copy(maxEntriesInput = intent.value, limitsError = null)
+            }
+
+            is DeviceIntent.TtlHoursChanged -> _state.update {
+                it.copy(ttlHoursInput = intent.value, limitsError = null)
+            }
+
+            is DeviceIntent.MaxBytesMbChanged -> _state.update {
+                it.copy(maxBytesMbInput = intent.value, limitsError = null)
+            }
+
+            DeviceIntent.SaveHistoryLimits -> saveHistoryLimits()
+        }
+    }
+
+    private fun saveHistoryLimits() {
+        val store = settings ?: return
+        val current = _state.value
+        val entries = current.maxEntriesInput.trim().toIntOrNull()
+        val ttlHours = current.ttlHoursInput.trim().toIntOrNull()
+        val maxBytesMb = current.maxBytesMbInput.trim().toLongOrNull()
+        val maxBytes = maxBytesMb?.times(MEBIBYTE)
+        if (
+            entries == null || ttlHours == null || maxBytes == null ||
+            !HistoryLimitsRules.validate(entries, ttlHours, maxBytes)
+        ) {
+            _state.update { it.copy(limitsError = Res.string.settings_limits_error) }
+            return
+        }
+
+        viewModelScope.launch {
+            _state.update { it.copy(isLimitsSaving = true) }
+            val applied = store.setHistoryLimits(entries, ttlHours, maxBytes)
+            _state.update {
+                it.copy(
+                    isLimitsSaving = false,
+                    limitsError = if (applied) null else Res.string.settings_limits_error,
+                )
+            }
+            if (applied) {
+                _effect.send(DeviceEffect.ShowMessage(Res.string.settings_limits_saved))
+            }
+        }
+    }
+
+    private suspend fun loadHistoryLimits() {
+        val store = settings ?: return
+        val limits = store.current()
+        _state.update {
+            it.copy(
+                maxEntriesInput = limits.maxEntries.toString(),
+                ttlHoursInput = limits.ttlHours.toString(),
+                maxBytesMbInput = (limits.maxBytes / MEBIBYTE).toString(),
+            )
+        }
+    }
+
+    private fun toggleAutoStart() {
+        val controller = autoStart ?: return
+        val target = !_state.value.autoStartEnabled
+        viewModelScope.launch {
+            _state.update { it.copy(isAutoStartBusy = true) }
+            val applied = controller.setEnabled(target)
+            _state.update {
+                it.copy(
+                    autoStartEnabled = if (applied) target else it.autoStartEnabled,
+                    isAutoStartBusy = false,
+                )
+            }
         }
     }
 
@@ -48,6 +126,8 @@ internal class DeviceManagementViewModel(
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
             repository.flushPending()
+            loadAutoStart()
+            loadHistoryLimits()
             val result = repository.loadDevices()
             result.onSuccess { devices ->
                 _state.update { it.copy(devices = devices, isLoading = false) }
@@ -62,6 +142,15 @@ internal class DeviceManagementViewModel(
             repository.observePendingCount().collect { count ->
                 _state.update { it.copy(pendingCount = count) }
             }
+        }
+    }
+
+    private suspend fun loadAutoStart() {
+        val controller = autoStart ?: return
+        if (!controller.isSupported) return
+        val enabled = controller.isEnabled()
+        _state.update {
+            it.copy(autoStartSupported = true, autoStartEnabled = enabled)
         }
     }
 
@@ -113,3 +202,5 @@ internal class DeviceManagementViewModel(
         }
     }
 }
+
+private const val MEBIBYTE = 1024L * 1024L

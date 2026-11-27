@@ -7,6 +7,7 @@ import io.github.slavikjunior.syncclip.feature.history.impl.data.cache.HistoryPa
 import io.github.slavikjunior.syncclip.feature.history.impl.data.repository.RoomHistoryRepository
 import io.github.slavikjunior.syncclip.feature.history.impl.domain.model.HistoryEntry
 import io.github.slavikjunior.syncclip.feature.history.impl.domain.repository.HistoryRepository
+import io.github.slavikjunior.syncclip.feature.history.impl.presentation.state.HistoryDetailViewModel
 import io.github.slavikjunior.syncclip.feature.history.impl.presentation.state.HistoryViewModel
 import io.github.slavikjunior.syncclip.shared.model.DeviceDirectory
 import org.koin.core.qualifier.named
@@ -31,5 +32,7 @@ val historyModule = module {
     }
     single { HistoryPageCache(get(named(HISTORY_PAGE_CACHE))) }
     single<HistoryRepository> { RoomHistoryRepository(get<ClipboardEventDao>(), get()) }
-    factory { HistoryViewModel(get(), getOrNull<DeviceDirectory>()) }
+    factory { HistoryViewModel(get(), getOrNull<DeviceDirectory>(), getOrNull()) }
+    // eventId приходит параметром Koin: экран деталей открывается для конкретной записи.
+    factory { params -> HistoryDetailViewModel(params.get(), get(), getOrNull()) }
 }

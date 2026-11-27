@@ -39,6 +39,10 @@ internal class FakeClipboardEventDao(
         query.isEmpty() || it.text.contains(query, ignoreCase = true)
     }
 
+    override suspend fun totalBytes(): Long = events.value.sumOf {
+        it.text.encodeToByteArray().size.toLong()
+    }
+
     override suspend fun findById(id: String): ClipboardEventEntity? =
         events.value.firstOrNull { it.id == id }
 

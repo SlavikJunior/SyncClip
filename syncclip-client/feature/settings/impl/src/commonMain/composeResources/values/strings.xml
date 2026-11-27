@@ -31,4 +31,24 @@
     <string name="settings_update_queued">Offline: change queued for the next connection</string>
     <string name="settings_pending">Pending changes: %1$d</string>
     <string name="settings_retry">Retry now</string>
+    <string name="settings_desktop">Desktop</string>
+    <string name="settings_autostart">Launch at login</string>
+    <string name="settings_autostart_hint">Start SyncClip when you sign in</string>
+    <string name="settings_history">History limits</string>
+    <string name="settings_history_hint">Only unpinned entries are evicted</string>
+    <string name="settings_history_entries">Max entries</string>
+    <string name="settings_history_entries_hint">5–200</string>
+    <string name="settings_history_ttl">Retention, hours</string>
+    <string name="settings_history_ttl_hint">1–720 (up to 30 days)</string>
+    <string name="settings_history_bytes">Storage size, MB</string>
+    <string name="settings_history_bytes_hint">1–100</string>
+    <string name="settings_history_save">Save limits</string>
+    <string name="settings_limits_error">Check the ranges: 5–200 entries, 1–720 hours, 1–100 MB</string>
+    <string name="settings_limits_saved">History limits saved</string>
+    <string name="settings_icon_phone">Phone</string>
+    <string name="settings_icon_tablet">Tablet</string>
+    <string name="settings_icon_laptop">Laptop</string>
+    <string name="settings_icon_desktop">Desktop</string>
+    <string name="settings_icon_watch">Watch</string>
+    <string name="settings_icon_tv">TV</string>
 </resources>

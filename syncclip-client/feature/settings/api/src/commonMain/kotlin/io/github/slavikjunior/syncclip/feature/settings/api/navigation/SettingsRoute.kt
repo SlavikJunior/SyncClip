@@ -5,4 +5,4 @@ import kotlinx.serialization.Serializable
 
 /** Корневой экран настроек. */
 @Serializable
-data object SettingsRoute : NavKey
+public data object SettingsRoute : NavKey

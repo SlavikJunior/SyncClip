@@ -15,6 +15,7 @@ import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertFalse
+import kotlin.test.assertTrue
 
 /**
  * Поведение кэша первого экрана: снимок показывается до ответа Room и не
@@ -88,5 +89,47 @@ internal class HistoryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("fresh"), viewModel.state.value.entries.map { it.id })
+    }
+
+    @Test
+    fun `eviction uses limits from settings`() = runTest(dispatcher) {
+        val repository = FakeHistoryRepository(page = emptyList())
+        val viewModel = HistoryViewModel(
+            repository = repository,
+            deviceDirectory = null,
+            settings = FixedSettings(
+                io.github.slavikjunior.syncclip.core.datastore.ClipboardSettings(
+                    maxEntries = 42,
+                    ttlHours = 3,
+                ),
+            ),
+        )
+        val before = kotlin.time.Clock.System.now().toEpochMilliseconds()
+
+        viewModel.handleIntent(HistoryIntent.Load)
+        advanceUntilIdle()
+
+        assertEquals(42, repository.lastEvictionMaxCount)
+        val cutoff = requireNotNull(repository.lastEvictionCutoff)
+        val expected = before - 3L * 60 * 60 * 1000
+        assertTrue(cutoff in (expected - 5_000)..(expected + 60_000))
+    }
+
+    private class FixedSettings(
+        private val value: io.github.slavikjunior.syncclip.core.datastore.ClipboardSettings,
+    ) : io.github.slavikjunior.syncclip.core.datastore.ClipboardSettingsStore {
+
+        override val state = kotlinx.coroutines.flow.flowOf(value)
+        override suspend fun current() = value
+        override suspend fun setOnline(isOnline: Boolean) = Unit
+        override suspend fun setAutoInsert(autoInsert: Boolean) = Unit
+        override suspend fun setMaxEntries(value: Int) = true
+        override suspend fun setTtlHours(value: Int) = true
+        override suspend fun setMaxBytes(value: Long) = true
+        override suspend fun setHistoryLimits(
+            maxEntries: Int,
+            ttlHours: Int,
+            maxBytes: Long,
+        ) = true
     }
 }

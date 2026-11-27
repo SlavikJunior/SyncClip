@@ -33,5 +33,12 @@ internal class FakeHistoryRepository(
 
     override suspend fun setPinned(id: String, pinned: Boolean) = Unit
 
-    override suspend fun evictExpired(cutoffMillis: Long, maxCount: Int): Int = 0
+    var lastEvictionCutoff: Long? = null
+    var lastEvictionMaxCount: Int? = null
+
+    override suspend fun evictExpired(cutoffMillis: Long, maxCount: Int): Int {
+        lastEvictionCutoff = cutoffMillis
+        lastEvictionMaxCount = maxCount
+        return 0
+    }
 }

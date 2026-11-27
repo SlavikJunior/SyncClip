@@ -3,6 +3,8 @@ package io.github.slavikjunior.syncclip.feature.settings.impl
 import io.github.slavikjunior.syncclip.core.cache.KacheWrapper
 import io.github.slavikjunior.syncclip.core.cache.KeyValueCache
 import io.github.slavikjunior.syncclip.core.database.PendingDeviceUpdateDao
+import io.github.slavikjunior.syncclip.core.datastore.AutoStart
+import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettingsStore
 import io.github.slavikjunior.syncclip.feature.settings.impl.data.cache.DeviceCache
 import io.github.slavikjunior.syncclip.feature.settings.impl.data.remote.DeviceApi
 import io.github.slavikjunior.syncclip.feature.settings.impl.data.remote.KtorDeviceApi
@@ -10,10 +12,9 @@ import io.github.slavikjunior.syncclip.feature.settings.impl.data.repository.Off
 import io.github.slavikjunior.syncclip.feature.settings.impl.data.repository.RepositoryDeviceDirectory
 import io.github.slavikjunior.syncclip.feature.settings.impl.domain.repository.DeviceRepository
 import io.github.slavikjunior.syncclip.feature.settings.impl.domain.usecase.ValidateDeviceNameUseCase
+import io.github.slavikjunior.syncclip.feature.settings.impl.presentation.state.DeviceManagementViewModel
 import io.github.slavikjunior.syncclip.shared.model.Device
 import io.github.slavikjunior.syncclip.shared.model.DeviceDirectory
-import io.github.slavikjunior.syncclip.shared.network.SyncClipHttpClient
-import io.ktor.client.HttpClient
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 import kotlin.time.Duration.Companion.minutes
@@ -25,13 +26,6 @@ private const val DEVICE_DIRECTORY_CACHE = "device-directory-cache"
 
 /** Публичный DI-контракт фичи. */
 val settingsModule = module {
-    single<SyncClipHttpClient> {
-        SyncClipHttpClient(
-            baseUrl = getOrNull<String>(named("apiBaseUrl")) ?: "http://localhost:8080",
-            tokenProvider = { getOrNull<String>(named("authToken")).orEmpty() },
-        )
-    }
-    single<HttpClient> { get<SyncClipHttpClient>().client }
     single<DeviceApi> { KtorDeviceApi(get()) }
     // Каталог устройств нужен каждому экрану истории и синхронизации, поэтому
     // кэш живёт в application-scope, а не в ViewModel.
@@ -42,4 +36,13 @@ val settingsModule = module {
     single<DeviceRepository> { OfflineDeviceRepository(get(), get<PendingDeviceUpdateDao>(), get()) }
     single<DeviceDirectory> { RepositoryDeviceDirectory(get(), get()) }
     single { ValidateDeviceNameUseCase() }
+    // ViewModel и его зависимости собирает контейнер (INV-08, INV-22).
+    factory {
+        DeviceManagementViewModel(
+            repository = get(),
+            validateName = get(),
+            autoStart = getOrNull<AutoStart>(),
+            settings = getOrNull<ClipboardSettingsStore>(),
+        )
+    }
 }

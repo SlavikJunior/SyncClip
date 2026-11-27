@@ -33,7 +33,7 @@ import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipTheme
  * статичны, чтобы baseline не зависел от анимаций.
  */
 @Composable
-public fun DesignSystemGallery(modifier: Modifier = Modifier) {
+internal fun DesignSystemGallery(modifier: Modifier = Modifier) {
     var query by remember { mutableStateOf("") }
     val scheme = MaterialTheme.colorScheme
     Surface(

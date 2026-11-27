@@ -8,13 +8,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import io.github.slavikjunior.syncclip.core.designsystem.theme.ThemeState
-import io.github.slavikjunior.syncclip.feature.settings.impl.domain.repository.DeviceRepository
-import io.github.slavikjunior.syncclip.feature.settings.impl.domain.usecase.ValidateDeviceNameUseCase
 import io.github.slavikjunior.syncclip.feature.settings.impl.presentation.state.DeviceEffect
 import io.github.slavikjunior.syncclip.feature.settings.impl.presentation.state.DeviceIntent
 import io.github.slavikjunior.syncclip.feature.settings.impl.presentation.state.DeviceManagementViewModel
 import org.jetbrains.compose.resources.getString
-import org.koin.compose.koinInject
+import org.koin.compose.viewmodel.koinViewModel
 
 @Composable
 internal fun SettingsScreen(
@@ -22,8 +20,8 @@ internal fun SettingsScreen(
     onThemeChange: (ThemeState) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val repository: DeviceRepository = koinInject()
-    val viewModel = remember { DeviceManagementViewModel(repository, ValidateDeviceNameUseCase()) }
+    // ViewModel, use case и настройки приходят из контейнера (INV-08, INV-22).
+    val viewModel: DeviceManagementViewModel = koinViewModel()
     val state by viewModel.state.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
 

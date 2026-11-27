@@ -2,6 +2,8 @@ package io.github.slavikjunior.syncclip.feature.history.impl.presentation.state
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettings
+import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettingsStore
 import io.github.slavikjunior.syncclip.feature.history.impl.domain.model.HistoryEntry
 import io.github.slavikjunior.syncclip.feature.history.impl.domain.model.HistoryEntryType
 import io.github.slavikjunior.syncclip.feature.history.impl.domain.repository.HistoryRepository
@@ -29,6 +31,7 @@ import kotlin.time.Clock
 internal class HistoryViewModel(
     private val repository: HistoryRepository,
     private val deviceDirectory: DeviceDirectory? = null,
+    private val settings: ClipboardSettingsStore? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HistoryUiState(isLoading = true))
@@ -112,8 +115,11 @@ internal class HistoryViewModel(
 
     private fun onLoad() {
         viewModelScope.launch {
-            val cutoff = Clock.System.now().toEpochMilliseconds() - TTL_MILLIS
-            repository.evictExpired(cutoff, MAX_LOCAL_ENTRIES)
+            // FR-4.3: лимиты берутся из настроек; без них — значения паспорта.
+            val limits = settings?.current() ?: ClipboardSettings()
+            val cutoff = Clock.System.now().toEpochMilliseconds() -
+                limits.ttlHours * 60L * 60L * 1000L
+            repository.evictExpired(cutoff, limits.maxEntries)
         }
     }
 
@@ -224,7 +230,5 @@ internal class HistoryViewModel(
     private companion object {
         const val SEARCH_DEBOUNCE_MS = 300L
         const val PAGE_SIZE = 50
-        const val MAX_LOCAL_ENTRIES = 200
-        const val TTL_MILLIS = 7L * 24L * 60L * 60L * 1_000L
     }
 }

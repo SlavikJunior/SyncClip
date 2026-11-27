@@ -5,4 +5,4 @@ import kotlinx.serialization.Serializable
 
 /** Экран управления устройствами (US-001, US-002). */
 @Serializable
-data object DeviceManagementRoute : NavKey
+public data object DeviceManagementRoute : NavKey

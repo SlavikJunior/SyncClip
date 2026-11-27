@@ -19,4 +19,16 @@ internal sealed interface DeviceIntent {
     data object DismissDialog : DeviceIntent
 
     data object DismissError : DeviceIntent
+
+    /** Автозапуск Desktop (FR-3.1); на Android/iOS намерение игнорируется. */
+    data object ToggleAutoStart : DeviceIntent
+
+    data class EntriesChanged(val value: String) : DeviceIntent
+
+    data class TtlHoursChanged(val value: String) : DeviceIntent
+
+    data class MaxBytesMbChanged(val value: String) : DeviceIntent
+
+    /** FR-4.3: применить все три лимита истории. */
+    data object SaveHistoryLimits : DeviceIntent
 }
