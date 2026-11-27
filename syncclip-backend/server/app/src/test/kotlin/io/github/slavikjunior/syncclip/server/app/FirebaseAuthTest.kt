@@ -6,6 +6,7 @@ import com.sun.net.httpserver.HttpServer
 import io.github.slavikjunior.syncclip.server.app.plugins.ServerJson
 import io.github.slavikjunior.syncclip.server.contracts.dto.auth.AuthResponse
 import io.github.slavikjunior.syncclip.server.contracts.dto.auth.FirebaseLoginRequest
+import io.github.slavikjunior.syncclip.server.contracts.dto.auth.RegisterRequest
 import io.github.slavikjunior.syncclip.server.contracts.dto.device.DeviceListDto
 import io.github.slavikjunior.syncclip.server.contracts.error.ErrorResponse
 import io.github.slavikjunior.syncclip.server.core.config.AppConfig
@@ -127,6 +128,32 @@ class FirebaseAuthTest {
     }
 
     @Test
+    fun `both mode lets desktop password account link to firebase login`() = testApplication {
+        application { module(bothConfig(), database) }
+        val client = jsonClient()
+        val email = "mixed-1@example.com"
+        val password = "MixedPassword123!"
+
+        // Desktop (JVM без Firebase) регистрируется серверным паролем.
+        val desktop = client.post("/v1/auth/register") {
+            contentType(ContentType.Application.Json)
+            setBody(RegisterRequest(email, password, IntegrationSupport.newDeviceId(), "MacBook", "macOS"))
+        }
+        assertEquals(HttpStatusCode.Created, desktop.status)
+        val desktopSession = desktop.body<AuthResponse>()
+
+        // Android входит через Firebase с тем же email — сервер привязывает UID
+        // к существующему аккаунту, а не создаёт второй.
+        val token = firebaseToken(uid = "firebase-uid-mixed", email = email, verified = true)
+        val android = client.post("/v1/auth/firebase") {
+            contentType(ContentType.Application.Json)
+            setBody(FirebaseLoginRequest(token, IntegrationSupport.newDeviceId(), "Pixel 8", "Android"))
+        }
+        assertEquals(HttpStatusCode.OK, android.status)
+        assertEquals(desktopSession.userId, android.body<AuthResponse>().userId)
+    }
+
+    @Test
     fun `password mode keeps firebase endpoint absent`() = testApplication {
         application { module(IntegrationSupport.config(), database) }
         val client = jsonClient()
@@ -142,6 +169,15 @@ class FirebaseAuthTest {
     private fun firebaseConfig(): AppConfig = IntegrationSupport.config(
         mapOf(
             "AUTH_PROVIDER" to "firebase",
+            "FIREBASE_PROJECT_ID" to "test-project",
+            "FIREBASE_JWKS_URL" to jwksUrl,
+            "FIREBASE_REQUIRE_VERIFIED_EMAIL" to "true",
+        ),
+    )
+
+    private fun bothConfig(): AppConfig = IntegrationSupport.config(
+        mapOf(
+            "AUTH_PROVIDER" to "both",
             "FIREBASE_PROJECT_ID" to "test-project",
             "FIREBASE_JWKS_URL" to jwksUrl,
             "FIREBASE_REQUIRE_VERIFIED_EMAIL" to "true",

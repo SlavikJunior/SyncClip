@@ -37,13 +37,14 @@ services:
       JWT_SECRET: ${JWT_SECRET:?set JWT_SECRET}
       # Список адресов/CIDR reverse proxy; X-Forwarded-For принимается только от них.
       TRUSTED_PROXIES: ${TRUSTED_PROXIES:?set TRUSTED_PROXIES (reverse proxy addresses)}
-      PUSH_PROVIDER: ${PUSH_PROVIDER:-noop}
-      AUTH_PROVIDER: ${AUTH_PROVIDER:-password}
-      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-}
+      PUSH_PROVIDER: ${PUSH_PROVIDER:-fcm}
+      AUTH_PROVIDER: ${AUTH_PROVIDER:-both}
+      FIREBASE_PROJECT_ID: ${FIREBASE_PROJECT_ID:-syncclip-app}
       FIREBASE_JWKS_URL: ${FIREBASE_JWKS_URL:-https://www.googleapis.com/robot/v1/metadata/x509/securetoken@system.gserviceaccount.com}
       FIREBASE_REQUIRE_VERIFIED_EMAIL: ${FIREBASE_REQUIRE_VERIFIED_EMAIL:-true}
       # Каталог ./secrets монтируется read-only; файл fcm.json нужен при PUSH_PROVIDER=fcm.
       FCM_CREDENTIALS_PATH: ${FCM_CREDENTIALS_PATH:-/run/secrets/fcm.json}
+      FCM_PROJECT_ID: ${FCM_PROJECT_ID:-syncclip-app}
       LOG_JSON: "true"
       LOG_LEVEL: INFO
       DB_MIGRATE_ON_START: "true"

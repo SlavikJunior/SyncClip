@@ -26,8 +26,13 @@ class ApiContractTest {
         Yaml().load<Map<String, Any>>(file.inputStream())
     }
 
+    /**
+     * Ключи в спецификации содержат префикс `/v1` (полный путь запроса),
+     * `ApiPaths` — тоже, но сравнение идёт по нормализованному виду без него.
+     */
     @Suppress("UNCHECKED_CAST")
-    private val paths: Map<String, Any> = spec["paths"] as Map<String, Any>
+    private val paths: Map<String, Any> =
+        (spec["paths"] as Map<String, Any>).mapKeys { it.key.removePrefix(ApiPaths.V1) }
 
     /** Реализовано как расширение контракта (CG-02/04/08/21, WebSocket protocol). */
     private val extensionPaths = setOf(

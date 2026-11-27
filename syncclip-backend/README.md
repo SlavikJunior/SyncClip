@@ -66,11 +66,17 @@ FCM JSON) — только env.
 `METRICS_ENABLED`, `METRICS_TOKEN`, `AUTH_PROVIDER`, `FIREBASE_PROJECT_ID`,
 `FIREBASE_JWKS_URL`, `FIREBASE_REQUIRE_VERIFIED_EMAIL`.
 
-`AUTH_PROVIDER=firebase` включает additive Firebase Auth: `POST /auth/firebase`
-принимает Firebase ID token (RS256, публичные JWKS Google) и выпускает обычные
-access/refresh JWT; `/auth/register` и `/auth/login` в этом режиме отсутствуют
-(404), поэтому email enumeration через `409` исключён. `FIREBASE_PROJECT_ID`
-обязателен, `FIREBASE_JWKS_URL` в PROD — только https.
+`AUTH_PROVIDER`:
+- `password` — только `/auth/register|login`;
+- `firebase` — только `POST /auth/firebase` (Firebase ID token, RS256, публичные
+  JWKS Google) → обычные access/refresh JWT; password-маршруты отвечают 404,
+  поэтому email enumeration через `409` исключён;
+- `both` (дефолт compose/.env.example) — оба пути. Mobile входит через Firebase,
+  Desktop — серверным паролем; Firebase-вход привязывается по verified email к
+  существующему аккаунту, поэтому устройства видят один аккаунт.
+
+`FIREBASE_PROJECT_ID` обязателен для `firebase`/`both`, `FIREBASE_JWKS_URL`
+в PROD — только https.
 
 Метрики (OPS-07): `METRICS_ENABLED=true` включает `GET /metrics` в формате Prometheus;
 обязательный `METRICS_TOKEN` (≥16 символов) передаётся как `Authorization: Bearer …`

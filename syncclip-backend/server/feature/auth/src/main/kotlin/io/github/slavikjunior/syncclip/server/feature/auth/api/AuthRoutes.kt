@@ -74,7 +74,8 @@ fun Route.authRoutes(
                 ),
             )
         }
-    } else {
+    }
+    if (authConfig.isPassword) {
         post(ApiPaths.AUTH_REGISTER) {
             val ip = clientIp(call)
             rateLimiter.check(RateLimitScope.REGISTER, ip)

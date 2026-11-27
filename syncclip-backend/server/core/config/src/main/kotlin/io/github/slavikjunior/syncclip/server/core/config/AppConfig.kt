@@ -16,14 +16,21 @@ data class AppConfig(
     val limits: LimitsConfig,
 )
 
-/** Провайдер аутентификации: собственные пароли или Firebase ID token (SEC-10). */
+/**
+ * Провайдер аутентификации (SEC-10): `password`, `firebase` или `both`.
+ *
+ * `both` нужен смешанному парку: Android/iOS входят через Firebase SDK, а
+ * Desktop (JVM без Firebase) — серверным email/паролем в тот же аккаунт
+ * (Firebase-вход привязывается к существующему пользователю по email).
+ */
 data class AuthConfig(
     val provider: String,
     val firebaseProjectId: String?,
     val firebaseJwksUrl: String,
     val firebaseRequireVerifiedEmail: Boolean,
 ) {
-    val isFirebase: Boolean get() = provider == "firebase"
+    val isFirebase: Boolean get() = provider == "firebase" || provider == "both"
+    val isPassword: Boolean get() = provider == "password" || provider == "both"
 }
 
 data class ServerConfig(

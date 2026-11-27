@@ -174,8 +174,8 @@ object ConfigValidation {
     }
 
     private fun validateAuth(config: AppConfig, problems: MutableList<String>) {
-        if (config.auth.provider !in setOf("password", "firebase")) {
-            problems += "AUTH_PROVIDER: must be password or firebase"
+        if (config.auth.provider !in setOf("password", "firebase", "both")) {
+            problems += "AUTH_PROVIDER: must be password, firebase or both"
         }
         if (config.auth.isFirebase) {
             if (config.auth.firebaseProjectId.isNullOrBlank()) {

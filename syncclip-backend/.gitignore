@@ -9,3 +9,4 @@ kotlin-compiler-embeddable-*.jar
 secrets/
 # Ресурсы приложения — часть исходников, корневой `*.properties` их не должен скрывать.
 !server/app/src/main/resources/i18n/*.properties
+local.properties
