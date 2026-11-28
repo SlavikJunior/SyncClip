@@ -17,6 +17,8 @@ kotlin {
             implementation(project(":core:designsystem"))
             implementation(project(":core:di"))
             implementation(project(":feature:settings:api"))
+            // EntryProviderScope — форма экспорта фичи (INV-27).
+            implementation(libs.androidx.navigation3.runtime)
             implementation(libs.koin.core)
             // koinViewModel(): ViewModel живёт в ViewModelStore, а не в remember (INV-08).
             implementation(libs.koin.compose.viewmodel)

@@ -88,6 +88,9 @@ lifecycle = "2.11.0"
 activityCompose = "1.13.0"
 composeBom = "2026.11.01"
 navigation3 = "1.2.2"
+# Форк JetBrains: только он содержит реальные actual-реализации NavDisplay
+# для desktop/iOS (в google-артефакте navigation3-ui они бросают NotImplementedError).
+navigation3Ui = "1.2.0"
 coil = "3.6.3"
 
 [libraries]
@@ -127,6 +130,9 @@ cmp-lifecycle-viewmodel = { group = "org.jetbrains.androidx.lifecycle", name = "
 cmp-foundation = { group = "org.jetbrains.compose.foundation", name = "foundation", version.ref = "compose" }
 cmp-material3 = { group = "org.jetbrains.compose.material3", name = "material3", version.ref = "composeMaterial3" }
 cmp-material3-adaptive = { group = "org.jetbrains.compose.material3.adaptive", name = "adaptive", version.ref = "composeMaterial3Adaptive" }
+# Сцены Navigation 3 (ListDetailSceneStrategy): эталонный путь multi-pane,
+# публикуется для android/desktop/iosArm64/iosSimulatorArm64.
+cmp-material3-adaptive-navigation3 = { group = "org.jetbrains.compose.material3.adaptive", name = "adaptive-navigation3", version.ref = "composeMaterial3Adaptive" }
 cmp-components-resources = { group = "org.jetbrains.compose.components", name = "components-resources", version.ref = "compose" }
 cmp-ui-test = { group = "org.jetbrains.compose.ui", name = "ui-test", version.ref = "compose" }
 cmp-ui-tooling = { group = "org.jetbrains.compose.ui", name = "ui-tooling", version.ref = "compose" }
@@ -135,7 +141,8 @@ cmp-ui-backhandler = { group = "org.jetbrains.compose.ui", name = "ui-backhandle
 
 # Navigation 3
 androidx-navigation3-runtime = { group = "androidx.navigation3", name = "navigation3-runtime", version.ref = "navigation3" }
-androidx-navigation3-ui = { group = "androidx.navigation3", name = "navigation3-ui", version.ref = "navigation3" }
+# NavDisplay: Android, desktop, iosArm64/iosSimulatorArm64, macos.
+jetbrains-androidx-navigation3-ui = { group = "org.jetbrains.androidx.navigation3", name = "navigation3-ui", version.ref = "navigation3Ui" }
 
 # Koin
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }

@@ -17,6 +17,13 @@ kotlin {
             implementation(project(":core:designsystem"))
             implementation(project(":core:di"))
             implementation(project(":feature:history:api"))
+            // EntryProviderScope — форма экспорта фичи (INV-27).
+            implementation(libs.androidx.navigation3.runtime)
+            // Сцены Nav3: ListDetailSceneStrategy + типы SceneStrategy из форка.
+            // Версия форка объявлена явно, иначе из adaptive-navigation3
+            // приезжает устаревший транзитивный navigation3-ui.
+            implementation(libs.jetbrains.androidx.navigation3.ui)
+            implementation(libs.cmp.material3.adaptive.navigation3)
             implementation(libs.koin.core)
             // koinViewModel(): ViewModel живёт в ViewModelStore, а не в remember (INV-08).
             implementation(libs.koin.compose.viewmodel)

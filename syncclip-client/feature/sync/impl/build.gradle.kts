@@ -11,6 +11,8 @@ kotlin {
             implementation(project(":shared:model"))
             implementation(project(":shared:network"))
             implementation(project(":feature:sync:api"))
+            // EntryProviderScope — форма экспорта фичи (INV-27).
+            implementation(libs.androidx.navigation3.runtime)
             implementation(project(":core:cache"))
             implementation(project(":core:clipboard"))
             implementation(project(":core:database"))
