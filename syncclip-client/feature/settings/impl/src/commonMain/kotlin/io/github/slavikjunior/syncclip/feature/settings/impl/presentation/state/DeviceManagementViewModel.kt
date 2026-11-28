@@ -14,6 +14,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -37,6 +38,9 @@ internal class DeviceManagementViewModel(
 
     private val _effect = Channel<DeviceEffect>(Channel.BUFFERED)
     val effect: Flow<DeviceEffect> = _effect.receiveAsFlow()
+
+    /** Один коллектор счётчика отложенных изменений на экран. */
+    private var pendingObserved = false
 
     fun handleIntent(intent: DeviceIntent) {
         when (intent) {
@@ -70,7 +74,11 @@ internal class DeviceManagementViewModel(
         val current = _state.value
         val entries = current.maxEntriesInput.trim().toIntOrNull()
         val ttlHours = current.ttlHoursInput.trim().toIntOrNull()
+        // Мегабайты проверяем до умножения: `Long` переполняется, и абсурдное
+        // значение (2^44 + 1 МБ) после переполнения могло бы попасть в
+        // допустимый диапазон — пользователь получил бы случайный лимит.
         val maxBytesMb = current.maxBytesMbInput.trim().toLongOrNull()
+            ?.takeIf { it in 1..MAX_MEGABYTES }
         val maxBytes = maxBytesMb?.times(MEBIBYTE)
         if (
             entries == null || ttlHours == null || maxBytes == null ||
@@ -82,7 +90,11 @@ internal class DeviceManagementViewModel(
 
         viewModelScope.launch {
             _state.update { it.copy(isLimitsSaving = true) }
-            val applied = store.setHistoryLimits(entries, ttlHours, maxBytes)
+            // Сбой записи DataStore (диск заполнен, файл повреждён) — это
+            // «не сохранилось», а не падение приложения: исключение из
+            // viewModelScope уронило бы экран.
+            val applied = runCatching { store.setHistoryLimits(entries, ttlHours, maxBytes) }
+                .getOrDefault(false)
             _state.update {
                 it.copy(
                     isLimitsSaving = false,
@@ -125,7 +137,9 @@ internal class DeviceManagementViewModel(
     private fun load() {
         viewModelScope.launch {
             _state.update { it.copy(isLoading = true) }
-            repository.flushPending()
+            // Сбой фоновой отправки отложенных изменений не должен мешать
+            // показать экран: загрузка каталога и лимитов важнее.
+            runCatching { repository.flushPending() }
             loadAutoStart()
             loadHistoryLimits()
             val result = repository.loadDevices()
@@ -139,9 +153,26 @@ internal class DeviceManagementViewModel(
                     )
                 }
             }
-            repository.observePendingCount().collect { count ->
-                _state.update { it.copy(pendingCount = count) }
-            }
+            observePending()
+        }
+    }
+
+    /**
+     * Подписка на счётчик отложенных изменений — одна на экран.
+     *
+     * `load()` вызывается и из «повторить»: без флага каждый вызов добавлял бы
+     * ещё один коллектор Room-флоу, и они копились бы до закрытия экрана.
+     */
+    private fun observePending() {
+        if (pendingObserved) return
+        pendingObserved = true
+        viewModelScope.launch {
+            repository.observePendingCount()
+                // Ошибка чтения счётчика — не повод падать: показываем прежнее.
+                .catch { }
+                .collect { count ->
+                    _state.update { it.copy(pendingCount = count) }
+                }
         }
     }
 
@@ -204,3 +235,6 @@ internal class DeviceManagementViewModel(
 }
 
 private const val MEBIBYTE = 1024L * 1024L
+
+/** Верхняя граница ввода в мегабайтах — совпадает с [HistoryLimitsRules.MAX_BYTES]. */
+private const val MAX_MEGABYTES = 100L

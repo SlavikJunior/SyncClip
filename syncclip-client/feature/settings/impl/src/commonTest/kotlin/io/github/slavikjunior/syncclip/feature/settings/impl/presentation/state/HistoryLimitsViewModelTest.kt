@@ -19,6 +19,7 @@ import kotlin.test.AfterTest
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
 import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -110,10 +111,48 @@ internal class HistoryLimitsViewModelTest {
         assertTrue(viewModel.state.value.limitsError != null)
     }
 
+    /**
+     * `2^44 + 1` МБ после умножения на 1 МиБ переполняет `Long` ровно в 1 МиБ —
+     * значение попадает в допустимый диапазон, и абсурдный ввод молча
+     * сохранялся бы как лимит 1 МБ.
+     */
+    @Test
+    fun `megabyte input that overflows Long is rejected`() = runTest(dispatcher) {
+        val viewModel = viewModel()
+        viewModel.handleIntent(DeviceIntent.Load)
+        advanceUntilIdle()
+
+        viewModel.handleIntent(DeviceIntent.MaxBytesMbChanged(OVERFLOWING_MEGABYTES))
+        viewModel.handleIntent(DeviceIntent.SaveHistoryLimits)
+        advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.limitsError)
+        assertEquals(5L * 1024 * 1024, settings.current().maxBytes)
+    }
+
+    @Test
+    fun `store write failure is reported as a validation error`() = runTest(dispatcher) {
+        settings.failWrites = true
+        val viewModel = viewModel()
+        viewModel.handleIntent(DeviceIntent.Load)
+        advanceUntilIdle()
+
+        viewModel.handleIntent(DeviceIntent.MaxBytesMbChanged("20"))
+        viewModel.handleIntent(DeviceIntent.SaveHistoryLimits)
+        advanceUntilIdle()
+
+        assertNotNull(viewModel.state.value.limitsError)
+        assertFalse(viewModel.state.value.isLimitsSaving)
+        assertEquals(5L * 1024 * 1024, settings.current().maxBytes)
+    }
+
     private class FakeSettingsStore(initial: ClipboardSettings) : ClipboardSettingsStore {
 
         private val values = MutableStateFlow(initial)
         override val state: Flow<ClipboardSettings> = values
+
+        /** Имитация переполненного диска: чтение работает, запись бросает. */
+        var failWrites: Boolean = false
 
         override suspend fun current(): ClipboardSettings = values.value
 
@@ -145,10 +184,15 @@ internal class HistoryLimitsViewModelTest {
             ttlHours: Int,
             maxBytes: Long,
         ): Boolean {
+            if (failWrites) error("disk is full")
             values.update {
                 it.copy(maxEntries = maxEntries, ttlHours = ttlHours, maxBytes = maxBytes)
             }
             return true
         }
+    }
+
+    private companion object {
+        const val OVERFLOWING_MEGABYTES = "17592186044417"
     }
 }
