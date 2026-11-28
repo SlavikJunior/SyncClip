@@ -11,6 +11,8 @@
     <string name="sync_packets_many">%1$d packets</string>
     <string name="sync_done_title">All done</string>
     <string name="sync_offline_title">Offline</string>
+    <string name="sync_suspended_title">Sync is suspended</string>
+    <string name="sync_suspended_hint">Server unreachable after 5 attempts. Check your connection.</string>
     <string name="sync_pause">Pause</string>
     <string name="sync_resume">Resume</string>
     <string name="sync_devices">Devices</string>

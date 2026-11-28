@@ -1,7 +1,7 @@
 package io.github.slavikjunior.syncclip.feature.sync.impl
 
 import io.github.slavikjunior.syncclip.feature.sync.impl.data.remote.KtorSyncSocketFactory
-import io.github.slavikjunior.syncclip.feature.sync.impl.data.transport.SyncConnectionStatus
+import io.github.slavikjunior.syncclip.feature.sync.impl.domain.model.SyncConnectionStatus
 import io.github.slavikjunior.syncclip.feature.sync.impl.data.transport.SyncTransport
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.model.SyncPacket
 import io.github.slavikjunior.syncclip.shared.crypto.AesGcmPayloadCipher

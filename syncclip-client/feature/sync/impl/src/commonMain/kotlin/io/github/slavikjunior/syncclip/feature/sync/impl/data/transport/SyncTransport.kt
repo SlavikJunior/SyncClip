@@ -10,6 +10,7 @@ import io.github.slavikjunior.syncclip.feature.sync.impl.data.remote.ServerMessa
 import io.github.slavikjunior.syncclip.feature.sync.impl.data.remote.SyncSocket
 import io.github.slavikjunior.syncclip.feature.sync.impl.data.remote.SyncSocketFactory
 import io.github.slavikjunior.syncclip.feature.sync.impl.data.remote.WsCodec
+import io.github.slavikjunior.syncclip.feature.sync.impl.domain.model.SyncConnectionStatus
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.model.SyncPacket
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.repository.ClipboardIncomingSink
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.repository.ServerPacketSource
@@ -27,6 +28,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.seconds
+import kotlin.time.TimeSource
 
 /**
  * WebSocket-транспорт: шифрует исходящие копирования и применяет входящие.
@@ -53,6 +57,7 @@ internal class SyncTransport(
     private val clock: EpochClock,
     private val sessionRefresher: SessionRefresher? = null,
     private val backoff: BackoffPolicy = BackoffPolicy(),
+    private val timeSource: TimeSource = TimeSource.Monotonic,
 ) : SyncTransportStarter {
 
     private val processor = IncomingPacketProcessor(cipher, incomingSink)
@@ -94,14 +99,20 @@ internal class SyncTransport(
                 continue
             }
 
-            attempt = 0
+            // Счётчик неудач сбрасывает только соединение, прожившее достаточно
+            // долго: рукопожатие, закрытое сразу, — тоже неудача (см. ниже).
             status.value = SyncConnectionStatus.ONLINE
+            val connectedAt = timeSource.markNow()
             var revoked = false
             try {
                 val deviceId = identity.identity().deviceId
                 coroutineScope {
                     val lastSendMillis = MutableStateFlow(clock.nowMillis())
-                    val pingJob = launch { pingLoop(socket, lastSendMillis) }
+                    // Живость соединения определяется входящими кадрами:
+                    // полуоткрытый TCP не сообщает об обрыве, и без этой метки
+                    // транспорт оставался бы ONLINE навсегда.
+                    val lastIncomingMillis = MutableStateFlow(clock.nowMillis())
+                    val pingJob = launch { pingLoop(socket, lastSendMillis, lastIncomingMillis) }
                     val sendJob = launch { sendLoop(socket, key, deviceId, lastSendMillis) }
                     val offlineWatcher = launch {
                         settings.state.first { !it.isOnline }
@@ -110,7 +121,7 @@ internal class SyncTransport(
                         socket.close()
                     }
                     try {
-                        receiveLoop(socket, key, deviceId)
+                        receiveLoop(socket, key, deviceId, lastIncomingMillis)
                     } finally {
                         offlineWatcher.cancel()
                         sendJob.cancel()
@@ -131,8 +142,26 @@ internal class SyncTransport(
                 status.value = SyncConnectionStatus.SUSPENDED
                 return
             }
-            status.value = SyncConnectionStatus.OFFLINE
-            delay(RECONNECT_DELAY_MILLIS)
+
+            // Соединение, закрытое сразу после рукопожатия (отказ сервера,
+            // сетевой экран, чужой deviceId), — это такая же неудача, как
+            // неудачный connect. Без backoff клиент молотил бы переподключения
+            // раз в секунду и никогда не показал бы SUSPENDED (FR-2.3).
+            // Пауза самим пользователем (Offline) неудачей не считается.
+            val pausedByUser = !settings.current().isOnline
+            if (!pausedByUser && connectedAt.elapsedNow() < HEALTHY_CONNECTION_WINDOW) {
+                attempt++
+                status.value = if (attempt >= backoff.maxAttempts) {
+                    SyncConnectionStatus.SUSPENDED
+                } else {
+                    SyncConnectionStatus.OFFLINE
+                }
+                delay(backoff.delayForAttempt(attempt))
+            } else {
+                attempt = 0
+                status.value = SyncConnectionStatus.OFFLINE
+                delay(RECONNECT_DELAY_MILLIS)
+            }
         }
     }
 
@@ -165,18 +194,36 @@ internal class SyncTransport(
         }
     }
 
-    private suspend fun pingLoop(socket: SyncSocket, lastSendMillis: MutableStateFlow<Long>) {
+    private suspend fun pingLoop(
+        socket: SyncSocket,
+        lastSendMillis: MutableStateFlow<Long>,
+        lastIncomingMillis: MutableStateFlow<Long>,
+    ) {
         while (currentCoroutineContext().isActive) {
             delay(PING_INTERVAL_MILLIS)
             val now = clock.nowMillis()
+            // Три интервала без единого входящего кадра — соединение мёртвое
+            // (Wi-Fi → LTE, NAT-таймаут, «чёрная дыра»). Сервер отвечает на
+            // каждый PING, поэтому живое соединение всегда обновляет метку.
+            if (now - lastIncomingMillis.value > STALE_CONNECTION_MILLIS) {
+                throw StaleConnectionException()
+            }
             if (now - lastSendMillis.value < PING_INTERVAL_MILLIS) continue
             socket.send(WsCodec.encode(ClientMessage.Ping(now)))
             lastSendMillis.value = now
         }
     }
 
-    private suspend fun receiveLoop(socket: SyncSocket, key: ByteArray, deviceId: String) {
+    private suspend fun receiveLoop(
+        socket: SyncSocket,
+        key: ByteArray,
+        deviceId: String,
+        lastIncomingMillis: MutableStateFlow<Long>,
+    ) {
         socket.incoming().collect { frame ->
+            // Метка живости — до разбора: PONG, ACK и мусор одинаково
+            // доказывают, что соединение ещё живо.
+            lastIncomingMillis.value = clock.nowMillis()
             when (val message = WsCodec.decode(frame)) {
                 null -> Unit
                 is ServerMessage.SyncEvent -> {
@@ -203,9 +250,25 @@ internal class SyncTransport(
 
     private class SessionRevokedException : Exception()
 
+    /** Соединение не подаёт признаков жизни дольше [STALE_CONNECTION_MILLIS]. */
+    private class StaleConnectionException : Exception()
+
     private companion object {
         const val PING_INTERVAL_MILLIS = 30_000L
         const val RECONNECT_DELAY_MILLIS = 1_000L
         const val LOCK_POLL_MILLIS = 500L
+
+        /**
+         * Сколько молчания терпим до переподключения. Три интервала PING:
+         * один потерянный PONG не должен рвать рабочее соединение.
+         */
+        const val STALE_CONNECTION_MILLIS = 3 * PING_INTERVAL_MILLIS
+
+        /**
+         * Соединение, прожившее меньше этого окна, считается неудачной попыткой
+         * подключения: иначе сервер, рвущий WebSocket сразу после рукопожатия,
+         * вызывал бы бесконечный шторм переподключений без backoff.
+         */
+        val HEALTHY_CONNECTION_WINDOW: Duration = 10.seconds
     }
 }

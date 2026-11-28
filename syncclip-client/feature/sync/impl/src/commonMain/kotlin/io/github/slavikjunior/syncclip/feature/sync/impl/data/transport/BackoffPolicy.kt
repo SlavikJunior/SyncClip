@@ -1,5 +1,7 @@
 package io.github.slavikjunior.syncclip.feature.sync.impl.data.transport
 
+import io.github.slavikjunior.syncclip.feature.sync.impl.domain.model.SyncConnectionStatus
+
 /**
  * Экспоненциальный backoff из FR-2.3: `min(1s * 2^n, 30s)`.
  *

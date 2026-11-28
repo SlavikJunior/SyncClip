@@ -11,6 +11,8 @@
     <string name="sync_packets_many">%1$d пакетов</string>
     <string name="sync_done_title">Всё готово</string>
     <string name="sync_offline_title">Офлайн</string>
+    <string name="sync_suspended_title">Синхронизация приостановлена</string>
+    <string name="sync_suspended_hint">Сервер недоступен после 5 попыток. Проверьте соединение.</string>
     <string name="sync_pause">Приостановить</string>
     <string name="sync_resume">Возобновить</string>
     <string name="sync_devices">Устройства</string>

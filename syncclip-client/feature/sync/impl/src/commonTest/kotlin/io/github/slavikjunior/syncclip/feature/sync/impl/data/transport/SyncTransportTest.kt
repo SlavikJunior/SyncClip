@@ -1,5 +1,6 @@
 package io.github.slavikjunior.syncclip.feature.sync.impl.data.transport
 
+import io.github.slavikjunior.syncclip.feature.sync.impl.domain.model.SyncConnectionStatus
 import io.github.slavikjunior.syncclip.feature.sync.impl.FakeClipboardSettingsStore
 import io.github.slavikjunior.syncclip.feature.sync.impl.FakeDeviceIdentityStore
 import io.github.slavikjunior.syncclip.feature.sync.impl.FakeIncomingSink

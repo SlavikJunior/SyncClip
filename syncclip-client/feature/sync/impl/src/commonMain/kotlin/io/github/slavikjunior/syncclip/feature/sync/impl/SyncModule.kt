@@ -148,6 +148,8 @@ val syncModule = module {
             settings = get(),
             starter = get(),
             deviceDirectory = getOrNull<DeviceDirectory>(),
+            // FR-2.3: экран синхронизации показывает OFFLINE/SUSPENDED.
+            connection = get<SyncTransport>().connectionStatus,
         )
     }
 }

@@ -43,6 +43,7 @@ import io.github.slavikjunior.syncclip.core.designsystem.component.SyncIndicator
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncIndicatorState
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipSpacing
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipTheme
+import io.github.slavikjunior.syncclip.feature.sync.impl.domain.model.SyncConnectionStatus
 import io.github.slavikjunior.syncclip.feature.sync.impl.presentation.state.SyncDeviceUi
 import io.github.slavikjunior.syncclip.feature.sync.impl.presentation.state.SyncIntent
 import io.github.slavikjunior.syncclip.feature.sync.impl.presentation.state.SyncStatusUiState
@@ -74,6 +75,8 @@ import syncclip.feature.sync.impl.generated.resources.sync_pause
 import syncclip.feature.sync.impl.generated.resources.sync_resume
 import syncclip.feature.sync.impl.generated.resources.sync_source
 import syncclip.feature.sync.impl.generated.resources.sync_subtitle
+import syncclip.feature.sync.impl.generated.resources.sync_suspended_hint
+import syncclip.feature.sync.impl.generated.resources.sync_suspended_title
 import syncclip.feature.sync.impl.generated.resources.sync_this_device
 import syncclip.feature.sync.impl.generated.resources.sync_title
 
@@ -151,10 +154,20 @@ private fun SyncHero(
     onIntent: (SyncIntent) -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    val title = if (state.isOnline) {
-        stringResource(Res.string.sync_done_title)
+    // FR-2.3: после пяти неудачных переподключений транспорт уходит в SUSPENDED,
+    // и пользователь должен это увидеть — иначе синхронизация «молча» стоит.
+    // Пауза самим пользователем (isOnline = false) приоритетнее: это его выбор,
+    // и тревожное сообщение здесь было бы ложным.
+    val suspended = state.isOnline && state.connectionStatus == SyncConnectionStatus.SUSPENDED
+    val title = when {
+        suspended -> stringResource(Res.string.sync_suspended_title)
+        state.isOnline -> stringResource(Res.string.sync_done_title)
+        else -> stringResource(Res.string.sync_offline_title)
+    }
+    val subtitle = if (suspended) {
+        stringResource(Res.string.sync_suspended_hint)
     } else {
-        stringResource(Res.string.sync_offline_title)
+        PacketsLabel(state.packetCount)
     }
     Surface(
         modifier = Modifier.fillMaxWidth(),
@@ -171,11 +184,11 @@ private fun SyncHero(
         ) {
             SyncIndicator(
                 title = title,
-                subtitle = PacketsLabel(state.packetCount),
-                state = if (state.isOnline) {
-                    SyncIndicatorState.IDLE
-                } else {
-                    SyncIndicatorState.OFFLINE
+                subtitle = subtitle,
+                state = when {
+                    suspended -> SyncIndicatorState.ERROR
+                    state.isOnline -> SyncIndicatorState.IDLE
+                    else -> SyncIndicatorState.OFFLINE
                 },
                 contentDescription = stringResource(
                     Res.string.sync_indicator_description,

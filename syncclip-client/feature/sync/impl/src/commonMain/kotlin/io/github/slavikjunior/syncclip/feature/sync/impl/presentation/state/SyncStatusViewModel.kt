@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettingsStore
 import io.github.slavikjunior.syncclip.feature.sync.api.ClipboardCaptureStarter
+import io.github.slavikjunior.syncclip.feature.sync.impl.domain.model.SyncConnectionStatus
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.repository.ClipboardCaptureFeed
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.repository.ClipboardPacketSource
 import io.github.slavikjunior.syncclip.shared.model.DeviceDirectory
@@ -29,6 +30,7 @@ internal class SyncStatusViewModel(
     private val settings: ClipboardSettingsStore,
     private val starter: ClipboardCaptureStarter,
     private val deviceDirectory: DeviceDirectory? = null,
+    private val connection: StateFlow<SyncConnectionStatus>? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SyncStatusUiState())
@@ -57,6 +59,14 @@ internal class SyncStatusViewModel(
                 _state.update { state -> state.copy(packetCount = state.packetCount + 1) }
             }
         }
+        // FR-2.3: состояние соединения показывается пользователю. Подписка
+        // живёт столько же, сколько экран; транспорт — `single`, поэтому
+        // исключение из его потока не может уронить подписчика.
+        connection?.let { status ->
+            viewModelScope.launch {
+                status.collect { value -> _state.update { it.copy(connectionStatus = value) } }
+            }
+        }
     }
 
     fun handleIntent(intent: SyncIntent) {
@@ -71,14 +81,21 @@ internal class SyncStatusViewModel(
     private fun toggleOnline() {
         val online = !_state.value.isOnline
         viewModelScope.launch {
-            settings.setOnline(online)
-            if (!online) _effect.send(SyncEffect.SyncPaused)
+            // Сбой записи DataStore (переполненный диск, повреждённый файл) не
+            // должен выбрасывать исключение в viewModelScope: приложение упало
+            // бы на простом тапе по тумблеру. Экран следует за store, поэтому
+            // при неудаче переключатель остаётся в прежнем положении.
+            val applied = runCatching { settings.setOnline(online) }.isSuccess
+            if (applied && !online) _effect.send(SyncEffect.SyncPaused)
         }
     }
 
     private fun toggleAutoInsert() {
         val autoInsert = !_state.value.autoInsert
-        viewModelScope.launch { settings.setAutoInsert(autoInsert) }
+        viewModelScope.launch {
+            // См. [toggleOnline]: ошибка записи — не повод падать.
+            runCatching { settings.setAutoInsert(autoInsert) }
+        }
     }
 
     private fun loadDevices() {
