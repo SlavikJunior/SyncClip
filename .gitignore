@@ -55,6 +55,7 @@ docs/*
 AGENTS.md
 /swarm-report/
 .harness/
+opencode.jsonc
 
 # ============================================================================
 # End of .gitignore
