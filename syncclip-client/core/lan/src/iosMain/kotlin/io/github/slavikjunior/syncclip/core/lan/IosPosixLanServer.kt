@@ -9,10 +9,12 @@ import kotlinx.cinterop.ptr
 import kotlinx.cinterop.reinterpret
 import kotlinx.cinterop.sizeOf
 import kotlinx.cinterop.value
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -77,11 +79,29 @@ internal class IosPosixLanServer : LanServer {
                 acceptJob = scope.launch {
                     while (isActive) {
                         val client = accept(server, null, null)
-                        if (client < 0) break
+                        if (client < 0) {
+                            // EINTR/EMFILE/ECONNABORTED — разовый сбой, а не
+                            // приглашение выключить приём: mDNS продолжает
+                            // анонсировать порт, и пиры стучались бы в мёртвый
+                            // сервер. Выходим только если сервер остановлен.
+                            if (descriptor < 0) break
+                            delay(ACCEPT_RETRY_DELAY_MILLIS)
+                            continue
+                        }
                         launch {
-                            val stream = IosPosixLanRawStream(client)
+                            val stream = try {
+                                IosPosixLanRawStream(client)
+                            } catch (_: Exception) {
+                                close(client)
+                                return@launch
+                            }
                             try {
                                 handle(stream)
+                            } catch (cancel: CancellationException) {
+                                throw cancel
+                            } catch (_: Exception) {
+                                // Сбой обработчика одного пира не должен ронять
+                                // scope без CoroutineExceptionHandler.
                             } finally {
                                 stream.close()
                             }
@@ -103,6 +123,11 @@ internal class IosPosixLanServer : LanServer {
             close(descriptor)
             descriptor = -1
         }
+    }
+
+    private companion object {
+        /** Пауза перед повтором `accept` после разового сбоя. */
+        const val ACCEPT_RETRY_DELAY_MILLIS = 50L
     }
 
 }

@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import platform.Foundation.NSData
+import platform.Foundation.NSLock
 import platform.Foundation.NSNetService
 import platform.Foundation.NSNetServiceBrowser
 import platform.Foundation.NSNetServiceBrowserDelegateProtocol
@@ -44,6 +45,23 @@ internal class IosNsdLanDiscovery(
     private var published: NSNetService? = null
     private var browserDelegate: BrowserDelegate? = null
     private val found = mutableMapOf<String, LanPeer>()
+
+    /**
+     * Кэш пиров меняется из двух потоков: `stop()/start()` из корутин
+     * транспорта, а `didFindService/didRemoveService` — из run-loop Bonjour.
+     * Без блокировки `found.values.toList()` и `removeAll` дают
+     * `ConcurrentModificationException` прямо в ObjC-колбэке.
+     */
+    private val foundLock = NSLock()
+
+    private inline fun <T> lockedFound(block: () -> T): T {
+        foundLock.lock()
+        try {
+            return block()
+        } finally {
+            foundLock.unlock()
+        }
+    }
 
     override suspend fun start() {
         if (browser != null) return
@@ -83,7 +101,7 @@ internal class IosNsdLanDiscovery(
         published?.stop()
         published = null
         browserDelegate = null
-        found.clear()
+        lockedFound { found.clear() }
         state.value = emptyList()
     }
 
@@ -100,18 +118,24 @@ internal class IosNsdLanDiscovery(
         if (deviceId == advertisement.deviceId) return
         val host = service.firstIpv4() ?: return
 
-        found[deviceId] = LanPeer(
-            deviceId = deviceId,
-            userId = userId,
-            host = host,
-            port = service.port.toInt(),
-        )
-        state.value = found.values.toList()
+        val peers = lockedFound {
+            found[deviceId] = LanPeer(
+                deviceId = deviceId,
+                userId = userId,
+                host = host,
+                port = service.port.toInt(),
+            )
+            found.values.toList()
+        }
+        state.value = peers
     }
 
     private fun remove(serviceName: String) {
-        val removed = found.entries.removeAll { (_, peer) -> peer.deviceId == serviceName }
-        if (removed) state.value = found.values.toList()
+        val peers = lockedFound {
+            val removed = found.entries.removeAll { (_, peer) -> peer.deviceId == serviceName }
+            if (removed) found.values.toList() else null
+        }
+        if (peers != null) state.value = peers
     }
 
     private fun NSNetService.txtValue(key: String): String? {
