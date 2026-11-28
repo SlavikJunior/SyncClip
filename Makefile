@@ -36,14 +36,18 @@ check-visual:
 		:core:designsystem:verifyRoborazziJvm \
 		:feature:history:impl:verifyRoborazziJvm \
 		:feature:sync:impl:verifyRoborazziJvm \
-		:feature:settings:impl:verifyRoborazziJvm
+		:feature:settings:impl:verifyRoborazziJvm \
+		:feature:auth:impl:verifyRoborazziJvm \
+		:app:common:verifyRoborazziJvm
 
 record-visual:
 	$(GRADLE_CLIENT) \
 		:core:designsystem:recordRoborazziJvm \
 		:feature:history:impl:recordRoborazziJvm \
 		:feature:sync:impl:recordRoborazziJvm \
-		:feature:settings:impl:recordRoborazziJvm
+		:feature:settings:impl:recordRoborazziJvm \
+		:feature:auth:impl:recordRoborazziJvm \
+		:app:common:recordRoborazziJvm
 
 # Полный сброс локального состояния IDE после изменения структуры репозитория.
 # Запускать при ЗАКРЫТЫХ Android Studio и IntelliJ IDEA, затем открыть корень

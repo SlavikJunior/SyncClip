@@ -114,6 +114,50 @@ class SettingsContentScreenshotTest {
         }
     }
 
+    /** MEDIUM-диапазон: один столбец секций, ширина ещё не ограничена. */
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun settingsMedium() {
+        runDesktopComposeUiTest(width = 673, height = 841) {
+            setContent {
+                SyncClipTheme(theme = ThemeState(mode = ThemeMode.LIGHT)) {
+                    SettingsContent(
+                        state = fakeState(),
+                        theme = ThemeState(mode = ThemeMode.LIGHT),
+                        fontScale = FontScale.MEDIUM,
+                        onThemeChange = {},
+                        onRegenerateRandomTheme = {},
+                        onFontScaleChange = {},
+                        onIntent = {},
+                    )
+                }
+            }
+            onRoot().captureRoboImage("settings-medium.png")
+        }
+    }
+
+    /** EXPANDED: контент ограничен 840 dp и центрирован, а не размазан по ширине. */
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun settingsWide() {
+        runDesktopComposeUiTest(width = 1280, height = 800) {
+            setContent {
+                SyncClipTheme(theme = ThemeState(mode = ThemeMode.LIGHT)) {
+                    SettingsContent(
+                        state = fakeState(),
+                        theme = ThemeState(mode = ThemeMode.LIGHT),
+                        fontScale = FontScale.MEDIUM,
+                        onThemeChange = {},
+                        onRegenerateRandomTheme = {},
+                        onFontScaleChange = {},
+                        onIntent = {},
+                    )
+                }
+            }
+            onRoot().captureRoboImage("settings-wide.png")
+        }
+    }
+
     private fun fakeState(): DeviceManagementUiState = DeviceManagementUiState(
         devices = listOf(
             DeviceItem(

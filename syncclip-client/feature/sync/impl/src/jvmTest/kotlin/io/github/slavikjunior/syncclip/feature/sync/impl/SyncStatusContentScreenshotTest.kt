@@ -51,6 +51,34 @@ class SyncStatusContentScreenshotTest {
         }
     }
 
+    /** MEDIUM-диапазон (складной/планшет в портрете). */
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun syncMedium() {
+        runDesktopComposeUiTest(width = 673, height = 841) {
+            setContent {
+                SyncClipTheme(theme = ThemeState(mode = ThemeMode.LIGHT)) {
+                    SyncStatusContent(state = fakeState(), onIntent = {})
+                }
+            }
+            onRoot().captureRoboImage("sync-medium.png")
+        }
+    }
+
+    /** EXPANDED: контент ограничен 840 dp и центрирован. */
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun syncWide() {
+        runDesktopComposeUiTest(width = 1280, height = 800) {
+            setContent {
+                SyncClipTheme(theme = ThemeState(mode = ThemeMode.LIGHT)) {
+                    SyncStatusContent(state = fakeState(), onIntent = {})
+                }
+            }
+            onRoot().captureRoboImage("sync-wide.png")
+        }
+    }
+
     private fun fakeState(): SyncStatusUiState = SyncStatusUiState(
         isOnline = true,
         packetCount = 3,

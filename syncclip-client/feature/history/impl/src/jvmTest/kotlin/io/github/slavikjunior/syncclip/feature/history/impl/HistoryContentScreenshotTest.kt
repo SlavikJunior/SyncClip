@@ -7,10 +7,12 @@ import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipTheme
 import io.github.slavikjunior.syncclip.core.designsystem.theme.ThemeMode
 import io.github.slavikjunior.syncclip.core.designsystem.theme.ThemeState
 import io.github.slavikjunior.syncclip.feature.history.impl.domain.model.HistoryEntryType
+import io.github.slavikjunior.syncclip.feature.history.impl.presentation.state.HistoryDetailUiState
 import io.github.slavikjunior.syncclip.feature.history.impl.presentation.state.HistoryEntryUi
 import io.github.slavikjunior.syncclip.feature.history.impl.presentation.state.HistoryFilter
 import io.github.slavikjunior.syncclip.feature.history.impl.presentation.state.HistoryUiState
 import io.github.slavikjunior.syncclip.feature.history.impl.presentation.ui.HistoryContent
+import io.github.slavikjunior.syncclip.feature.history.impl.presentation.ui.HistoryDetailContent
 import io.github.slavikjunior.syncclip.shared.model.DeviceIcon
 import io.github.takahirom.roborazzi.captureRoboImage
 import org.junit.BeforeClass
@@ -18,8 +20,15 @@ import org.junit.Test
 import java.util.Locale
 
 /**
- * Baseline переверстанного History. Запуск:
- * `./gradlew :feature:history:impl:recordRoborazziJvm`,
+ * Baseline History на целевых форм-факторах (адаптивный шаг 1):
+ * 390 dp — телефон, 673 dp — разложенный складной (MEDIUM), 1280 dp —
+ * планшет/десктоп (EXPANDED), 1920 dp — широкий десктоп.
+ *
+ * Двухпанельный режим собирает `ListDetailSceneStrategy`, поэтому здесь
+ * снимаются отдельно список (сетка колонок) и деталь (со стрелкой на узком
+ * окне и без неё на широком).
+ *
+ * Запуск: `./gradlew :feature:history:impl:recordRoborazziJvm`,
  * проверка — `verifyRoborazziJvm`.
  */
 class HistoryContentScreenshotTest {
@@ -43,7 +52,6 @@ class HistoryContentScreenshotTest {
                     HistoryContent(
                         state = fakeState(),
                         onIntent = {},
-                        useTwoPane = false,
                         nowMillis = now,
                     )
                 }
@@ -61,7 +69,6 @@ class HistoryContentScreenshotTest {
                     HistoryContent(
                         state = fakeState(),
                         onIntent = {},
-                        useTwoPane = false,
                         nowMillis = now,
                     )
                 }
@@ -70,36 +77,111 @@ class HistoryContentScreenshotTest {
         }
     }
 
+    /** MEDIUM-диапазон (разложенный складной): две колонки карточек. */
     @OptIn(ExperimentalTestApi::class)
     @Test
-    fun twoPaneLight() {
+    fun foldableGridLight() {
+        runDesktopComposeUiTest(width = 673, height = 841) {
+            setContent {
+                SyncClipTheme(theme = ThemeState(mode = ThemeMode.LIGHT)) {
+                    HistoryContent(
+                        state = fakeState(),
+                        onIntent = {},
+                        nowMillis = now,
+                    )
+                }
+            }
+            onRoot().captureRoboImage("history-foldable-grid-light.png")
+        }
+    }
+
+    /** EXPANDED: список как левая панель list-detail (три колонки). */
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun wideGridLight() {
         runDesktopComposeUiTest(width = 1280, height = 800) {
             setContent {
                 SyncClipTheme(theme = ThemeState(mode = ThemeMode.LIGHT)) {
                     HistoryContent(
                         state = fakeState().copy(selectedEntryId = "1"),
                         onIntent = {},
-                        useTwoPane = true,
                         nowMillis = now,
                     )
                 }
             }
-            onRoot().captureRoboImage("history-two-pane-light.png")
+            onRoot().captureRoboImage("history-wide-grid-light.png")
         }
     }
 
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun desktopGridLight() {
+        runDesktopComposeUiTest(width = 1920, height = 1080) {
+            setContent {
+                SyncClipTheme(theme = ThemeState(mode = ThemeMode.LIGHT)) {
+                    HistoryContent(
+                        state = fakeState().copy(selectedEntryId = "1"),
+                        onIntent = {},
+                        nowMillis = now,
+                    )
+                }
+            }
+            onRoot().captureRoboImage("history-desktop-grid-light.png")
+        }
+    }
+
+    /** Деталь на телефоне — отдельный экран, back-стрелка на месте. */
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun detailCompactLight() {
+        runDesktopComposeUiTest(width = 390, height = 844) {
+            setContent {
+                SyncClipTheme(theme = ThemeState(mode = ThemeMode.LIGHT)) {
+                    HistoryDetailContent(
+                        state = HistoryDetailUiState(entry = firstEntry()),
+                        onIntent = {},
+                        nowMillis = now,
+                        showBackArrow = true,
+                    )
+                }
+            }
+            onRoot().captureRoboImage("history-detail-compact-light.png")
+        }
+    }
+
+    /** Деталь в правой панели: стрелки возврата нет (list-detail). */
+    @OptIn(ExperimentalTestApi::class)
+    @Test
+    fun detailPaneWideLight() {
+        runDesktopComposeUiTest(width = 1280, height = 800) {
+            setContent {
+                SyncClipTheme(theme = ThemeState(mode = ThemeMode.LIGHT)) {
+                    HistoryDetailContent(
+                        state = HistoryDetailUiState(entry = firstEntry()),
+                        onIntent = {},
+                        nowMillis = now,
+                        showBackArrow = false,
+                    )
+                }
+            }
+            onRoot().captureRoboImage("history-detail-pane-light.png")
+        }
+    }
+
+    private fun firstEntry(): HistoryEntryUi = HistoryEntryUi(
+        id = "1",
+        text = "github.com/JetBrains/compose-multiplatform",
+        timestampMillis = now - 2 * 60_000L,
+        sourceDeviceId = "mac",
+        isPinned = true,
+        sourceDeviceName = "MacBook Pro",
+        sourceIcon = DeviceIcon.LAPTOP,
+        type = HistoryEntryType.LINK,
+    )
+
     private fun fakeState(): HistoryUiState = HistoryUiState(
         entries = listOf(
-            HistoryEntryUi(
-                id = "1",
-                text = "github.com/JetBrains/compose-multiplatform",
-                timestampMillis = now - 2 * 60_000L,
-                sourceDeviceId = "mac",
-                isPinned = true,
-                sourceDeviceName = "MacBook Pro",
-                sourceIcon = DeviceIcon.LAPTOP,
-                type = HistoryEntryType.LINK,
-            ),
+            firstEntry(),
             HistoryEntryUi(
                 id = "2",
                 text = "Check Room migrations on iOS — BundledSQLiteDriver needs its own config",
