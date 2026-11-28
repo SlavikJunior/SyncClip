@@ -9,6 +9,8 @@ internal fun ClipboardEventEntity.toDomain(): HistoryEntry = HistoryEntry(
     timestampMillis = timestampMillis,
     sourceDeviceId = sourceDeviceId,
     isPinned = isPinned,
+    isFavorite = isFavorite,
+    expiresAtMillis = expiresAtMillis,
 )
 
 internal fun HistoryEntry.toEntity(): ClipboardEventEntity = ClipboardEventEntity(
@@ -17,4 +19,6 @@ internal fun HistoryEntry.toEntity(): ClipboardEventEntity = ClipboardEventEntit
     timestampMillis = timestampMillis,
     sourceDeviceId = sourceDeviceId,
     isPinned = isPinned,
+    isFavorite = isFavorite,
+    expiresAtMillis = expiresAtMillis,
 )

@@ -24,6 +24,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
@@ -63,10 +64,16 @@ import syncclip.feature.history.impl.generated.resources.history_count
 import syncclip.feature.history.impl.generated.resources.history_delete
 import syncclip.feature.history.impl.generated.resources.history_empty
 import syncclip.feature.history.impl.generated.resources.history_empty_title
+import syncclip.feature.history.impl.generated.resources.history_favorites_empty
+import syncclip.feature.history.impl.generated.resources.history_favorites_empty_title
+import syncclip.feature.history.impl.generated.resources.history_favorite
 import syncclip.feature.history.impl.generated.resources.history_found
 import syncclip.feature.history.impl.generated.resources.history_load_more
 import syncclip.feature.history.impl.generated.resources.history_pin
+import syncclip.feature.history.impl.generated.resources.history_pin_swipe
 import syncclip.feature.history.impl.generated.resources.history_recent
+import syncclip.feature.history.impl.generated.resources.history_send
+import syncclip.feature.history.impl.generated.resources.history_unfavorite
 import syncclip.feature.history.impl.generated.resources.history_search_clear
 import syncclip.feature.history.impl.generated.resources.history_search_empty
 import syncclip.feature.history.impl.generated.resources.history_search_empty_title
@@ -77,6 +84,7 @@ import syncclip.feature.history.impl.generated.resources.history_select_entry_hi
 import syncclip.feature.history.impl.generated.resources.history_subtitle
 import syncclip.feature.history.impl.generated.resources.history_title
 import syncclip.feature.history.impl.generated.resources.history_unpin
+import syncclip.feature.history.impl.generated.resources.history_unpin_swipe
 import kotlin.time.Clock
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -99,6 +107,21 @@ internal fun HistoryContent(
     Scaffold(
         modifier = modifier,
         snackbarHost = { snackbarHostState?.let { SnackbarHost(it) } },
+        floatingActionButton = {
+            // US-016: отправка текущего буфера на выбранные устройства.
+            FloatingActionButton(
+                onClick = { onIntent(HistoryIntent.OpenSendTargets) },
+                containerColor = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            ) {
+                SyncClipIcon(
+                    kind = SyncClipIconKind.SEND,
+                    contentDescription = stringResource(Res.string.history_send),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                    size = 20.dp,
+                )
+            }
+        },
     ) { padding ->
         Row(modifier = Modifier.padding(padding).fillMaxSize()) {
             if (useTwoPane) {
@@ -149,6 +172,9 @@ internal fun HistoryContent(
                 )
             }
         }
+    }
+    if (state.sendDialog != null) {
+        HistorySendDialog(state = state.sendDialog, onIntent = onIntent)
     }
 }
 
@@ -279,16 +305,28 @@ private fun HistoryFilterChips(
                         style = MaterialTheme.typography.labelMedium,
                     )
                 },
-                leadingIcon = if (filter == HistoryFilter.PINNED) {
-                    {
-                        SyncClipIcon(
-                            kind = SyncClipIconKind.PIN,
-                            contentDescription = null,
-                            size = 13.dp,
-                        )
+                leadingIcon = when (filter) {
+                    HistoryFilter.PINNED -> {
+                        {
+                            SyncClipIcon(
+                                kind = SyncClipIconKind.PIN,
+                                contentDescription = null,
+                                size = 13.dp,
+                            )
+                        }
                     }
-                } else {
-                    null
+
+                    HistoryFilter.FAVORITES -> {
+                        {
+                            SyncClipIcon(
+                                kind = SyncClipIconKind.STAR,
+                                contentDescription = null,
+                                size = 13.dp,
+                            )
+                        }
+                    }
+
+                    else -> null
                 },
                 colors = FilterChipDefaults.filterChipColors(
                     containerColor = scheme.surface,
@@ -318,22 +356,27 @@ private fun HistoryList(
         state.entries.isEmpty() -> {
             Box(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                 val isSearch = state.query.isNotBlank()
+                val isFavorites = state.filter == HistoryFilter.FAVORITES
                 EmptyState(
                     title = stringResource(
-                        if (isSearch) {
-                            Res.string.history_search_empty_title
-                        } else {
-                            Res.string.history_empty_title
+                        when {
+                            isSearch -> Res.string.history_search_empty_title
+                            isFavorites -> Res.string.history_favorites_empty_title
+                            else -> Res.string.history_empty_title
                         },
                     ),
                     message = stringResource(
-                        if (isSearch) {
-                            Res.string.history_search_empty
-                        } else {
-                            Res.string.history_empty
+                        when {
+                            isSearch -> Res.string.history_search_empty
+                            isFavorites -> Res.string.history_favorites_empty
+                            else -> Res.string.history_empty
                         },
                     ),
-                    icon = if (isSearch) SyncClipIconKind.SEARCH else SyncClipIconKind.HISTORY,
+                    icon = when {
+                        isSearch -> SyncClipIconKind.SEARCH
+                        isFavorites -> SyncClipIconKind.STAR
+                        else -> SyncClipIconKind.HISTORY
+                    },
                 )
             }
         }
@@ -395,32 +438,69 @@ private fun HistoryEntryRow(
     onIntent: (HistoryIntent) -> Unit,
 ) {
     val deleteLabel = stringResource(Res.string.history_delete)
+    val pinLabel = stringResource(
+        if (entry.isPinned) Res.string.history_unpin_swipe else Res.string.history_pin_swipe,
+    )
     val dismissState = rememberSwipeToDismissBoxState(
         confirmValueChange = { value ->
-            if (value == SwipeToDismissBoxValue.EndToStart && !entry.isPinned) {
-                onIntent(HistoryIntent.Delete(entry.id))
-                true
-            } else {
-                false
+            when {
+                // US-019: полный свайп вправо — закрепление. Возврат `false`
+                // оставляет карточку в списке: закрепление не удаляет запись.
+                value == SwipeToDismissBoxValue.StartToEnd -> {
+                    onIntent(HistoryIntent.TogglePin(entry.id))
+                    false
+                }
+
+                value == SwipeToDismissBoxValue.EndToStart && !entry.isPinned -> {
+                    onIntent(HistoryIntent.Delete(entry.id))
+                    true
+                }
+
+                else -> false
             }
         },
     )
+    val swipingToPin = dismissState.dismissDirection == SwipeToDismissBoxValue.StartToEnd
     SwipeToDismissBox(
         state = dismissState,
-        enableDismissFromStartToEnd = false,
+        enableDismissFromStartToEnd = true,
+        enableDismissFromEndToStart = !entry.isPinned,
         backgroundContent = {
+            val background = if (swipingToPin) {
+                MaterialTheme.colorScheme.secondaryContainer
+            } else {
+                MaterialTheme.colorScheme.errorContainer
+            }
+            val content = if (swipingToPin) {
+                MaterialTheme.colorScheme.onSecondaryContainer
+            } else {
+                MaterialTheme.colorScheme.onErrorContainer
+            }
             Box(
                 modifier = Modifier
                     .fillMaxSize()
                     .clip(MaterialTheme.shapes.large)
-                    .background(MaterialTheme.colorScheme.errorContainer)
+                    .background(background)
                     .padding(SyncClipSpacing.lg),
-                contentAlignment = Alignment.CenterEnd,
+                contentAlignment = if (swipingToPin) Alignment.CenterStart else Alignment.CenterEnd,
             ) {
-                Text(
-                    text = deleteLabel,
-                    color = MaterialTheme.colorScheme.onErrorContainer,
-                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(SyncClipSpacing.sm),
+                ) {
+                    if (swipingToPin) {
+                        SyncClipIcon(
+                            kind = SyncClipIconKind.PIN,
+                            contentDescription = null,
+                            tint = content,
+                            size = 16.dp,
+                        )
+                    }
+                    Text(
+                        text = if (swipingToPin) pinLabel else deleteLabel,
+                        color = content,
+                    )
+                }
             }
         },
         content = {
@@ -435,17 +515,30 @@ private fun HistoryEntryRow(
                 sourceLabel = HistorySourceLabel(entry),
                 sourceIcon = entry.sourceIcon.toSyncClipIcon(),
                 timeLabel = HistoryTimeLabel(entry.timestampMillis, nowMillis),
+                badgeLabel = HistoryExpiryLabel(entry.expiresAtMillis, nowMillis),
                 isPinned = entry.isPinned,
+                isFavorite = entry.isFavorite,
                 isSelected = isSelected,
                 onClick = {
                     onIntent(HistoryIntent.Select(entry.id, navigate = navigateOnSelect))
                 },
+                // US-020: двойной тап копирует текст в системный буфер.
+                onDoubleClick = { onIntent(HistoryIntent.CopyToClipboard(entry.id)) },
                 onPinClick = { onIntent(HistoryIntent.TogglePin(entry.id)) },
                 pinContentDescription = stringResource(
                     if (entry.isPinned) {
                         Res.string.history_unpin
                     } else {
                         Res.string.history_pin
+                    },
+                ),
+                // US-017: звезда избранного.
+                onFavoriteClick = { onIntent(HistoryIntent.ToggleFavorite(entry.id)) },
+                favoriteContentDescription = stringResource(
+                    if (entry.isFavorite) {
+                        Res.string.history_unfavorite
+                    } else {
+                        Res.string.history_favorite
                     },
                 ),
             )

@@ -4,5 +4,12 @@ import org.jetbrains.compose.resources.StringResource
 
 internal sealed interface DeviceEffect {
 
-    data class ShowMessage(val message: StringResource) : DeviceEffect
+    /**
+     * Сообщение в snackbar. [args] — аргументы форматирования строки:
+     * экспорт и импорт возвращают счётчики, а не фиксированный текст.
+     */
+    data class ShowMessage(
+        val message: StringResource,
+        val args: List<Any> = emptyList(),
+    ) : DeviceEffect
 }

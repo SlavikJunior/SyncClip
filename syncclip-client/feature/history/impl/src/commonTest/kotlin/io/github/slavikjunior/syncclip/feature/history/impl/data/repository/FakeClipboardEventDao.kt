@@ -23,7 +23,7 @@ internal class FakeClipboardEventDao(
     }
 
     override fun observePage(limit: Int, offset: Int): Flow<List<ClipboardEventEntity>> =
-        events.map { items -> items.drop(offset).take(limit) }
+        events.map { items -> items.sortedWith(ORDER).drop(offset).take(limit) }
 
     override fun observeSearchPage(
         query: String,
@@ -31,6 +31,7 @@ internal class FakeClipboardEventDao(
         offset: Int,
     ): Flow<List<ClipboardEventEntity>> = events.map { items ->
         items.filter { query.isEmpty() || it.text.contains(query, ignoreCase = true) }
+            .sortedWith(ORDER)
             .drop(offset)
             .take(limit)
     }
@@ -54,6 +55,14 @@ internal class FakeClipboardEventDao(
         events.value = events.value.map { if (it.id == id) it.copy(isPinned = pinned) else it }
     }
 
+    override suspend fun setFavorite(id: String, favorite: Boolean) {
+        events.value = events.value.map { if (it.id == id) it.copy(isFavorite = favorite) else it }
+    }
+
+    override suspend fun newestRows(limit: Int): List<ClipboardEventEntity> = events.value
+        .sortedByDescending { it.timestampMillis }
+        .take(limit)
+
     override suspend fun delete(id: String) {
         events.value = events.value.filterNot { it.id == id }
     }
@@ -72,5 +81,16 @@ internal class FakeClipboardEventDao(
     override suspend fun expiredUnpinnedIds(cutoffMillis: Long): List<String> = events.value
         .filterNot { it.isPinned }
         .filter { it.timestampMillis < cutoffMillis }
+        .map { it.id }
+
+    private companion object {
+        /** Как `ORDER BY isPinned DESC, timestampMillis DESC` в DAO. */
+        val ORDER = compareByDescending<ClipboardEventEntity> { it.isPinned }
+            .thenByDescending { it.timestampMillis }
+    }
+
+    override suspend fun expiredSensitiveIds(nowMillis: Long): List<String> = events.value
+        .filterNot { it.isPinned }
+        .filter { (it.expiresAtMillis ?: Long.MAX_VALUE) <= nowMillis }
         .map { it.id }
 }

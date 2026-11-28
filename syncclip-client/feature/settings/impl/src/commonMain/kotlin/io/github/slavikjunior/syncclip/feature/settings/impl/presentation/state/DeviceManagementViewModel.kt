@@ -2,13 +2,22 @@ package io.github.slavikjunior.syncclip.feature.settings.impl.presentation.state
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.slavikjunior.syncclip.core.datastore.AppSettings
+import io.github.slavikjunior.syncclip.core.datastore.AppSettingsStore
 import io.github.slavikjunior.syncclip.core.datastore.AutoStart
 import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettingsStore
 import io.github.slavikjunior.syncclip.core.datastore.HistoryLimitsRules
+import io.github.slavikjunior.syncclip.core.datastore.NotificationSettings
+import io.github.slavikjunior.syncclip.core.platform.BiometricAuthenticator
+import io.github.slavikjunior.syncclip.core.platform.DocumentGateway
+import io.github.slavikjunior.syncclip.feature.settings.impl.domain.model.ArchiveExportOutcome
+import io.github.slavikjunior.syncclip.feature.settings.impl.domain.model.ArchiveFormat
+import io.github.slavikjunior.syncclip.feature.settings.impl.domain.model.ArchiveImportOutcome
+import io.github.slavikjunior.syncclip.feature.settings.impl.domain.model.DeviceKind
 import io.github.slavikjunior.syncclip.feature.settings.impl.domain.model.DeviceNameError
 import io.github.slavikjunior.syncclip.feature.settings.impl.domain.repository.DeviceRepository
+import io.github.slavikjunior.syncclip.feature.settings.impl.domain.repository.HistoryArchiveService
 import io.github.slavikjunior.syncclip.feature.settings.impl.domain.usecase.ValidateDeviceNameUseCase
-import io.github.slavikjunior.syncclip.feature.settings.impl.domain.model.DeviceKind
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +28,13 @@ import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import syncclip.feature.settings.impl.generated.resources.Res
+import syncclip.feature.settings.impl.generated.resources.settings_archive_empty
+import syncclip.feature.settings.impl.generated.resources.settings_archive_exported
+import syncclip.feature.settings.impl.generated.resources.settings_archive_exported_generic
+import syncclip.feature.settings.impl.generated.resources.settings_archive_failed
+import syncclip.feature.settings.impl.generated.resources.settings_archive_imported
+import syncclip.feature.settings.impl.generated.resources.settings_archive_invalid
+import syncclip.feature.settings.impl.generated.resources.settings_biometric_unavailable
 import syncclip.feature.settings.impl.generated.resources.settings_error_invalid_name
 import syncclip.feature.settings.impl.generated.resources.settings_error_load
 import syncclip.feature.settings.impl.generated.resources.settings_limits_error
@@ -31,6 +47,10 @@ internal class DeviceManagementViewModel(
     private val validateName: ValidateDeviceNameUseCase,
     private val autoStart: AutoStart? = null,
     private val settings: ClipboardSettingsStore? = null,
+    private val appSettings: AppSettingsStore? = null,
+    private val biometrics: BiometricAuthenticator? = null,
+    private val documents: DocumentGateway? = null,
+    private val archive: HistoryArchiveService? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(DeviceManagementUiState())
@@ -66,6 +86,14 @@ internal class DeviceManagementViewModel(
             }
 
             DeviceIntent.SaveHistoryLimits -> saveHistoryLimits()
+            is DeviceIntent.ToggleNotification -> toggleNotification(intent.kind)
+            DeviceIntent.ToggleAutoClearSensitive -> toggleAutoClearSensitive()
+            DeviceIntent.ToggleBiometricLock -> toggleBiometricLock()
+            is DeviceIntent.SetBiometricTimeout -> setBiometricTimeout(intent.minutes)
+            DeviceIntent.OpenExportDialog -> _state.update { it.copy(exportDialogVisible = true) }
+            DeviceIntent.DismissExportDialog -> _state.update { it.copy(exportDialogVisible = false) }
+            is DeviceIntent.ExportHistory -> exportHistory(intent.format)
+            DeviceIntent.ImportHistory -> importHistory()
         }
     }
 
@@ -142,6 +170,7 @@ internal class DeviceManagementViewModel(
             runCatching { repository.flushPending() }
             loadAutoStart()
             loadHistoryLimits()
+            loadAppPreferences()
             val result = repository.loadDevices()
             result.onSuccess { devices ->
                 _state.update { it.copy(devices = devices, isLoading = false) }
@@ -229,6 +258,155 @@ internal class DeviceManagementViewModel(
             }.onFailure {
                 _state.update { it.copy(editingDeviceId = null) }
                 _effect.send(DeviceEffect.ShowMessage(Res.string.settings_update_queued))
+            }
+        }
+    }
+
+    // ---- Phase 2: настройки Phase 2 (US-009, US-021, US-022, US-018, US-024) ----
+
+    /**
+     * Читает настройки интерфейса и приватности.
+     *
+     * Биометрия настраивается сразу при загрузке: после убийства процесса
+     * платформенный наблюдатель не помнит, была ли блокировка включена.
+     */
+    private suspend fun loadAppPreferences() {
+        val store = appSettings ?: return
+        val current = runCatching { store.current() }.getOrNull() ?: AppSettings()
+        val authenticator = biometrics
+        _state.update {
+            it.copy(
+                notifications = current.notifications,
+                autoClearSensitive = current.autoClearSensitive,
+                biometricAvailable = authenticator?.isAvailable == true,
+                biometricLock = current.security.biometricLock,
+                biometricTimeoutMinutes = current.security.timeoutMinutes,
+                documentsSupported = documents?.isSupported == true,
+            )
+        }
+        runCatching {
+            authenticator?.configure(
+                enabled = current.security.biometricLock,
+                timeoutMinutes = current.security.timeoutMinutes,
+            )
+        }
+    }
+
+    private fun toggleNotification(kind: NotificationKind) {
+        val store = appSettings ?: return
+        val current = _state.value.notifications
+        val updated = when (kind) {
+            NotificationKind.NEW_COPIES -> current.copy(newCopies = !current.newCopies)
+            NotificationKind.NEW_DEVICE -> current.copy(newDevice = !current.newDevice)
+            NotificationKind.FAILED_SIGN_IN -> current.copy(failedSignIn = !current.failedSignIn)
+            NotificationKind.SOUND -> current.copy(sound = !current.sound)
+            NotificationKind.VIBRATION -> current.copy(vibration = !current.vibration)
+        }
+        viewModelScope.launch {
+            val applied = runCatching { store.setNotifications(updated) }.isSuccess
+            if (applied) _state.update { it.copy(notifications = updated) }
+        }
+    }
+
+    private fun toggleAutoClearSensitive() {
+        val store = appSettings ?: return
+        val target = !_state.value.autoClearSensitive
+        viewModelScope.launch {
+            val applied = runCatching { store.setAutoClearSensitive(target) }.isSuccess
+            if (applied) _state.update { it.copy(autoClearSensitive = target) }
+        }
+    }
+
+    private fun toggleBiometricLock() {
+        val store = appSettings ?: return
+        val authenticator = biometrics
+        if (authenticator?.isAvailable != true) {
+            viewModelScope.launch {
+                _effect.send(
+                    DeviceEffect.ShowMessage(Res.string.settings_biometric_unavailable),
+                )
+            }
+            return
+        }
+        val target = !_state.value.biometricLock
+        val timeout = _state.value.biometricTimeoutMinutes
+        viewModelScope.launch {
+            val applied = runCatching { store.setBiometricLock(target, timeout) }
+                .getOrDefault(false)
+            if (!applied) return@launch
+            runCatching { authenticator.configure(target, timeout) }
+            _state.update { it.copy(biometricLock = target) }
+        }
+    }
+
+    private fun setBiometricTimeout(minutes: Int) {
+        val store = appSettings ?: return
+        val enabled = _state.value.biometricLock
+        viewModelScope.launch {
+            val applied = runCatching { store.setBiometricLock(enabled, minutes) }
+                .getOrDefault(false)
+            if (!applied) return@launch
+            runCatching { biometrics?.configure(enabled, minutes) }
+            _state.update { it.copy(biometricTimeoutMinutes = minutes) }
+        }
+    }
+
+    private fun exportHistory(format: ArchiveFormat) {
+        val service = archive ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(exportDialogVisible = false, isArchiveBusy = true) }
+            val outcome = runCatching { service.export(format) }
+                .getOrElse { ArchiveExportOutcome.Failed }
+            _state.update { it.copy(isArchiveBusy = false) }
+            when (outcome) {
+                is ArchiveExportOutcome.Saved -> {
+                    val location = outcome.location
+                    val effect = if (location.isNullOrBlank()) {
+                        DeviceEffect.ShowMessage(Res.string.settings_archive_exported_generic)
+                    } else {
+                        DeviceEffect.ShowMessage(
+                            Res.string.settings_archive_exported,
+                            listOf(location),
+                        )
+                    }
+                    _effect.send(effect)
+                }
+
+                ArchiveExportOutcome.Cancelled -> Unit
+                ArchiveExportOutcome.Failed -> _effect.send(
+                    DeviceEffect.ShowMessage(Res.string.settings_archive_failed),
+                )
+            }
+        }
+    }
+
+    private fun importHistory() {
+        val service = archive ?: return
+        viewModelScope.launch {
+            _state.update { it.copy(isArchiveBusy = true) }
+            val outcome = runCatching { service.import() }
+                .getOrElse { ArchiveImportOutcome.Failed }
+            _state.update { it.copy(isArchiveBusy = false) }
+            when (outcome) {
+                is ArchiveImportOutcome.Imported -> _effect.send(
+                    DeviceEffect.ShowMessage(
+                        Res.string.settings_archive_imported,
+                        listOf(outcome.imported, outcome.skipped),
+                    ),
+                )
+
+                ArchiveImportOutcome.Cancelled -> Unit
+                ArchiveImportOutcome.InvalidFormat -> _effect.send(
+                    DeviceEffect.ShowMessage(Res.string.settings_archive_invalid),
+                )
+
+                ArchiveImportOutcome.Empty -> _effect.send(
+                    DeviceEffect.ShowMessage(Res.string.settings_archive_empty),
+                )
+
+                ArchiveImportOutcome.Failed -> _effect.send(
+                    DeviceEffect.ShowMessage(Res.string.settings_archive_failed),
+                )
             }
         }
     }

@@ -24,8 +24,12 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import io.github.slavikjunior.syncclip.app.common.ui.TrayLabels
+import io.github.slavikjunior.syncclip.app.desktop.documents.DesktopDocumentGateway
 import io.github.slavikjunior.syncclip.app.desktop.theme.SyncClipTrayIcon
+import io.github.slavikjunior.syncclip.core.platform.DocumentGateway
+import org.koin.core.context.loadKoinModules
 import org.koin.core.context.startKoin
+import org.koin.dsl.module
 
 /**
  * Точка входа Desktop: окно + системный трей + глобальный хоткей.
@@ -37,6 +41,12 @@ fun main() {
     val koin = startKoin {
         modules(appModules())
     }.koin
+    // US-018: на Desktop системный диалог — Swing JFileChooser.
+    loadKoinModules(
+        module {
+            single<DocumentGateway> { DesktopDocumentGateway() }
+        },
+    )
 
     val runtime: SyncRuntime = koin.get()
     val sectionRequests: AppSectionRequests = koin.get()

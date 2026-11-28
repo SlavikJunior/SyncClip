@@ -3,4 +3,7 @@
     <string name="capture_done">Saved to SyncClip</string>
     <string name="capture_empty">Nothing to share</string>
     <string name="tile_capture_label">Capture clipboard</string>
+    <string name="push_new_clip_title">New clip</string>
+    <string name="push_new_clip_body">From %1$s</string>
+    <string name="push_new_clip_body_unknown">From another device</string>
 </resources>

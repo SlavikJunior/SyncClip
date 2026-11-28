@@ -19,6 +19,16 @@ internal interface HistoryRepository {
     suspend fun restore(entry: HistoryEntry)
     suspend fun setPinned(id: String, pinned: Boolean)
 
+    /** US-017: избранное. */
+    suspend fun setFavorite(id: String, favorite: Boolean)
+
     /** Вытеснение только непривязанных записей, по LRU и TTL. */
     suspend fun evictExpired(cutoffMillis: Long, maxCount: Int): Int
+
+    /**
+     * US-021: удаление чувствительных записей с истёкшим сроком.
+     *
+     * @return сколько записей удалено.
+     */
+    suspend fun clearExpiredSensitive(nowMillis: Long): Int
 }

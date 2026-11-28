@@ -180,5 +180,9 @@ private class PagedHistoryRepository(
 
     override suspend fun setPinned(id: String, pinned: Boolean) = Unit
 
+    override suspend fun setFavorite(id: String, favorite: Boolean) = Unit
+
     override suspend fun evictExpired(cutoffMillis: Long, maxCount: Int): Int = 0
+
+    override suspend fun clearExpiredSensitive(nowMillis: Long): Int = 0
 }

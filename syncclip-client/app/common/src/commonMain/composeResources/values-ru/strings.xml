@@ -17,4 +17,8 @@
     <string name="tray_status_offline">SyncClip — офлайн</string>
     <string name="e2ee_locked">Ввод заблокирован. Повторите через %1$s</string>
     <string name="e2ee_attempts_left">Осталось попыток: %1$d</string>
+    <string name="lock_title">SyncClip заблокирован</string>
+    <string name="lock_hint">Подтвердите личность, чтобы увидеть историю буфера</string>
+    <string name="lock_unlock">Разблокировать</string>
+    <string name="lock_failed">Не удалось подтвердить личность. Попробуйте ещё раз</string>
 </resources>

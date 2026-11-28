@@ -1,6 +1,9 @@
 package io.github.slavikjunior.syncclip.feature.sync.impl.data.transport
 
 import io.github.slavikjunior.syncclip.core.clipboard.EpochClock
+import io.github.slavikjunior.syncclip.core.clipboard.ClipboardLimits
+import io.github.slavikjunior.syncclip.core.clipboard.TargetedClipboardSender
+import io.github.slavikjunior.syncclip.core.clipboard.TargetedSendResult
 import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettingsStore
 import io.github.slavikjunior.syncclip.core.datastore.DeviceIdentityStore
 import io.github.slavikjunior.syncclip.core.datastore.SessionRefresher
@@ -22,12 +25,15 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlin.uuid.Uuid
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 import kotlin.time.TimeSource
@@ -58,12 +64,40 @@ internal class SyncTransport(
     private val sessionRefresher: SessionRefresher? = null,
     private val backoff: BackoffPolicy = BackoffPolicy(),
     private val timeSource: TimeSource = TimeSource.Monotonic,
-) : SyncTransportStarter {
+) : SyncTransportStarter, TargetedClipboardSender {
 
     private val processor = IncomingPacketProcessor(cipher, incomingSink)
 
     private val status = MutableStateFlow(SyncConnectionStatus.LOCKED)
     val connectionStatus: StateFlow<SyncConnectionStatus> = status.asStateFlow()
+
+    /**
+     * Адресные пакеты (US-016) идут только через сервер: LAN-пир не знает, кому
+     * именно они предназначены, а сервер фильтрует по `targetDeviceIds`.
+     */
+    private val targetedPackets = MutableSharedFlow<SyncPacket>(
+        extraBufferCapacity = TARGETED_BUFFER_CAPACITY,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
+
+    override suspend fun send(text: String, targetDeviceIds: List<String>): TargetedSendResult {
+        if (text.isBlank() || ClipboardLimits.utf8Size(text) > ClipboardLimits.MAX_TEXT_BYTES) {
+            return TargetedSendResult.Empty
+        }
+        if (!settings.current().isOnline || status.value != SyncConnectionStatus.ONLINE) {
+            return TargetedSendResult.Offline
+        }
+        targetedPackets.emit(
+            SyncPacket(
+                eventId = Uuid.random().toString(),
+                text = text,
+                copiedAtMillis = clock.nowMillis(),
+                isProgrammatic = true,
+                targetDeviceIds = targetDeviceIds,
+            ),
+        )
+        return TargetedSendResult.Queued
+    }
 
     override suspend fun run() {
         var attempt = 0
@@ -179,12 +213,14 @@ internal class SyncTransport(
         deviceId: String,
         lastSendMillis: MutableStateFlow<Long>,
     ) {
-        serverPackets.serverPackets().collect { packet ->
+        // Обычные и адресные пакеты идут одним циклом: порядок записи в сокет
+        // сохраняется, а шифрование и формат кадра не дублируются.
+        merge(serverPackets.serverPackets(), targetedPackets).collect { packet ->
             if (!settings.current().isOnline) return@collect
             val message = ClientMessage.SyncEvent(
                 eventId = packet.eventId,
                 originDeviceId = deviceId,
-                targetDeviceIds = emptyList(),
+                targetDeviceIds = packet.targetDeviceIds,
                 encryptedPayload = cipher.encrypt(packet.text, key),
                 payloadHash = PayloadHash.of(packet.text),
                 timestamp = packet.copiedAtMillis.takeIf { it > 0 } ?: clock.nowMillis(),
@@ -257,6 +293,9 @@ internal class SyncTransport(
         const val PING_INTERVAL_MILLIS = 30_000L
         const val RECONNECT_DELAY_MILLIS = 1_000L
         const val LOCK_POLL_MILLIS = 500L
+
+        /** Очередь адресных отправок: пользователь нажимает «Отправить» редко. */
+        const val TARGETED_BUFFER_CAPACITY = 16
 
         /**
          * Сколько молчания терпим до переподключения. Три интервала PING:

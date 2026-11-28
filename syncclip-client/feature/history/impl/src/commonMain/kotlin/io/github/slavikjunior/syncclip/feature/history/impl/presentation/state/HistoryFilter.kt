@@ -6,6 +6,7 @@ import io.github.slavikjunior.syncclip.feature.history.impl.domain.model.History
 internal enum class HistoryFilter {
     ALL,
     PINNED,
+    FAVORITES,
     LINKS,
     CODE,
     ;
@@ -13,6 +14,7 @@ internal enum class HistoryFilter {
     fun matches(entry: HistoryEntryUi): Boolean = when (this) {
         ALL -> true
         PINNED -> entry.isPinned
+        FAVORITES -> entry.isFavorite
         LINKS -> entry.type == HistoryEntryType.LINK
         CODE -> entry.type == HistoryEntryType.CODE
     }

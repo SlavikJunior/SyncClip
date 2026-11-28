@@ -222,18 +222,20 @@ syncclip-client/
 ├── :core                      # Инфраструктурный слой
 │   ├── :clipboard            # Системный буфер: Android/iOS/JVM, эхо, лимит 512 КиБ
 │   ├── :lan                  # LAN P2P: mDNS/NSD, TCP-сервер/клиент, кадры
-│   ├── :database             # Room KMP (история, отложенные изменения устройств)
-│   ├── :datastore            # DataStore (сессия JWT, deviceId, Online/авто-вставка)
+│   ├── :database             # Room KMP (история, избранное, отложенные изменения)
+│   ├── :datastore            # DataStore (сессия, deviceId, лимиты, тема, приватность)
+│   ├── :archive              # Экспорт/импорт истории: JSON/CSV, лимит 1000 записей
+│   ├── :platform             # Контракты платформы: файловый диалог, биометрия, уведомления
 │   ├── :firebase             # Firebase Auth + FCM (Android SDK / iOS Swift-мост)
 │   ├── :cache                # Kache wrapper
-│   ├── :designsystem         # Тема, компоненты Compose
+│   ├── :designsystem         # Тема (включая Random), шрифт, компоненты Compose
 │   ├── :di                   # Koin-модули (composition root)
 │   └── :architecture-tests   # Konsist-проверки инвариантов
 ├── :feature                   # Feature-модули (MVI), у каждой api/impl
 │   ├── :auth                 # Вход через Firebase → JWT сервера
-│   ├── :sync                 # Захват буфера, статус, дедупликация
-│   ├── :history              # История, поиск, pin, удаление
-│   └── :settings             # Устройства, тема
+│   ├── :sync                 # Захват буфера, статус, дедупликация, адресная отправка
+│   ├── :history              # История, поиск, избранное, свайпы, отправка на устройство
+│   └── :settings             # Устройства, тема, шрифт, уведомления, приватность, архив
 └── :app                       # Платформенные точки входа
     ├── :common               # Общий Compose-shell и composition root
     ├── :androidApp           # Application, MainActivity, FCM-сервис
@@ -272,11 +274,19 @@ syncclip-backend/
 - [x] Сервер: FCM-уведомления (неудачные попытки входа)
 - [x] Desktop: системный трей, автозапуск, глобальный хоткей
 
-### Phase 2 (Should Have)
+### Phase 2 (Should Have) — реализовано 2026-11-28
 
+- [x] Гибкие настройки уведомлений (US-009): 5 тумблеров, локальные push-политики
+- [x] Мультиязычность RU/EN (US-010): 100% строк, все модули
+- [x] Настройка шрифта (US-011): 4 шага, множитель типографики
+- [x] Темы: Aqua, Winter, Monochrome, Dynamic, Random (US-012…US-015), сохранение в DataStore
+- [x] Отправка на конкретное устройство (US-016): FAB + `targetDeviceIds`
+- [x] Избранное (US-017), swipe-to-pin (US-019), double-tap copy (US-020)
+- [x] Экспорт/импорт истории JSON/CSV (US-018/US-024), лимит 1000 записей
+- [x] Автоочистка чувствительных данных (US-021): эвристика + TTL 5 минут
+- [x] Биометрическая блокировка (US-022): Android Keyguard, iOS LocalAuthentication
 - [ ] Пауза синхронизации на 15 мин / 1 час
-- [x] Поиск и фильтр в истории
-- [ ] Unit-тесты (80%+ coverage; покрытие не измерялось)
+- [ ] Unit-тесты: измерение покрытия (сейчас 802 теста, падений 0)
 - [ ] E2E-тесты на реальных устройствах
 
 ### Phase 3 (Could Have)

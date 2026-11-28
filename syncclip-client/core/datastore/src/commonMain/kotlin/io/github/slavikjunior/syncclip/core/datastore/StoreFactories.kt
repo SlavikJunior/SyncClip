@@ -18,6 +18,10 @@ public fun createClipboardSettingsStore(
     dataStore: DataStore<Preferences>,
 ): ClipboardSettingsStore = ClipboardSettingsPreferences(dataStore)
 
+public fun createAppSettingsStore(
+    dataStore: DataStore<Preferences>,
+): AppSettingsStore = AppSettingsPreferences(dataStore)
+
 public fun createE2eeLockoutStore(
     dataStore: DataStore<Preferences>,
 ): E2eeLockoutStore = E2eeLockoutPreferences(dataStore)

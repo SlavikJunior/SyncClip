@@ -3,6 +3,7 @@ package io.github.slavikjunior.syncclip.feature.settings.impl
 import androidx.compose.ui.test.ExperimentalTestApi
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.runDesktopComposeUiTest
+import io.github.slavikjunior.syncclip.core.designsystem.theme.FontScale
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipTheme
 import io.github.slavikjunior.syncclip.core.designsystem.theme.ThemeMode
 import io.github.slavikjunior.syncclip.core.designsystem.theme.ThemePreset
@@ -35,7 +36,10 @@ class SettingsContentScreenshotTest {
                     SettingsContent(
                         state = fakeState(),
                         theme = ThemeState(mode = ThemeMode.LIGHT),
+                        fontScale = FontScale.MEDIUM,
                         onThemeChange = {},
+                        onRegenerateRandomTheme = {},
+                        onFontScaleChange = {},
                         onIntent = {},
                     )
                 }
@@ -54,7 +58,10 @@ class SettingsContentScreenshotTest {
                     SettingsContent(
                         state = fakeState(),
                         theme = darkWinter,
+                        fontScale = FontScale.MEDIUM,
                         onThemeChange = {},
+                        onRegenerateRandomTheme = {},
+                        onFontScaleChange = {},
                         onIntent = {},
                     )
                 }
@@ -73,7 +80,10 @@ class SettingsContentScreenshotTest {
                     SettingsContent(
                         state = fakeState(),
                         theme = mono,
+                        fontScale = FontScale.MEDIUM,
                         onThemeChange = {},
+                        onRegenerateRandomTheme = {},
+                        onFontScaleChange = {},
                         onIntent = {},
                     )
                 }
@@ -92,7 +102,10 @@ class SettingsContentScreenshotTest {
                     SettingsContent(
                         state = fakeState(),
                         theme = dynamic,
+                        fontScale = FontScale.MEDIUM,
                         onThemeChange = {},
+                        onRegenerateRandomTheme = {},
+                        onFontScaleChange = {},
                         onIntent = {},
                     )
                 }

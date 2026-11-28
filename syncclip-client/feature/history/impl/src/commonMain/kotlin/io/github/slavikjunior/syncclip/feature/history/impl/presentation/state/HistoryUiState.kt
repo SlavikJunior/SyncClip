@@ -19,4 +19,6 @@ internal data class HistoryUiState(
      */
     val hasMore: Boolean = true,
     val error: StringResource? = null,
+    /** US-016: открытый диалог отправки; `null` — закрыт. */
+    val sendDialog: SendDialogUiState? = null,
 )

@@ -1,8 +1,10 @@
 package io.github.slavikjunior.syncclip.core.designsystem.component
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,7 +35,10 @@ import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipMonoFontF
  *
  * Все подписи передаются снаружи, чтобы компонент не знал о локализации.
  * [onPinClick] == null рисует статичную иконку закрепления без действия.
+ * Звёздочка избранного (US-017) и двойной тап для копирования (US-020) —
+ * такие же необязательные действия, как закрепление.
  */
+@OptIn(ExperimentalFoundationApi::class)
 @Composable
 public fun ClipboardCard(
     text: AnnotatedString,
@@ -43,21 +48,28 @@ public fun ClipboardCard(
     sourceLabel: String? = null,
     sourceIcon: SyncClipIconKind = SyncClipIconKind.LAPTOP,
     timeLabel: String? = null,
+    badgeLabel: String? = null,
     isPinned: Boolean = false,
+    isFavorite: Boolean = false,
     isSelected: Boolean = false,
     onClick: (() -> Unit)? = null,
+    onDoubleClick: (() -> Unit)? = null,
     onPinClick: (() -> Unit)? = null,
     pinContentDescription: String? = null,
+    onFavoriteClick: (() -> Unit)? = null,
+    favoriteContentDescription: String? = null,
 ) {
     val scheme = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.large
     val cardColor = when {
         isPinned -> scheme.surfaceContainerHigh
+        isFavorite -> scheme.surfaceContainer
         else -> scheme.surface
     }
     val borderColor = when {
         isSelected -> scheme.primary
         isPinned -> scheme.primary.copy(alpha = 0.35f)
+        isFavorite -> scheme.tertiary.copy(alpha = 0.35f)
         else -> scheme.outlineVariant
     }
     val interaction = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
@@ -67,20 +79,27 @@ public fun ClipboardCard(
             .fillMaxWidth()
             .clip(shape)
             .then(
-                if (onClick != null) {
-                    Modifier.clickable(
+                when {
+                    onClick == null -> Modifier
+                    onDoubleClick == null -> Modifier.clickable(
                         interactionSource = interaction,
                         indication = androidx.compose.foundation.LocalIndication.current,
                         onClick = onClick,
                     )
-                } else {
-                    Modifier
+
+                    else -> Modifier.combinedClickable(
+                        interactionSource = interaction,
+                        indication = androidx.compose.foundation.LocalIndication.current,
+                        onClick = onClick,
+                        onDoubleClick = onDoubleClick,
+                    )
                 },
             ),
         shape = shape,
         color = cardColor,
         border = BorderStroke(if (isSelected) 1.5.dp else 1.dp, borderColor),
     ) {
+
         Column(
             modifier = Modifier.padding(
                 horizontal = SyncClipSpacing.lg,
@@ -88,7 +107,7 @@ public fun ClipboardCard(
             ),
             verticalArrangement = Arrangement.spacedBy(SyncClipSpacing.sm),
         ) {
-            if (typeLabel != null || isPinned || onPinClick != null) {
+            if (typeLabel != null || isPinned || onPinClick != null || onFavoriteClick != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     verticalAlignment = Alignment.CenterVertically,
@@ -101,6 +120,22 @@ public fun ClipboardCard(
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f),
                     )
+                    if (isFavorite || onFavoriteClick != null) {
+                        CardAction(
+                            kind = if (isFavorite) {
+                                SyncClipIconKind.STAR_FILLED
+                            } else {
+                                SyncClipIconKind.STAR
+                            },
+                            tint = if (isFavorite) {
+                                scheme.tertiary
+                            } else {
+                                scheme.onSurfaceVariant
+                            },
+                            contentDescription = favoriteContentDescription,
+                            onClick = onFavoriteClick,
+                        )
+                    }
                     if (isPinned || onPinClick != null) {
                         PinAction(
                             pinned = isPinned,
@@ -206,6 +241,25 @@ public fun ClipboardCard(
                     }
                 }
             }
+            if (badgeLabel != null) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    SyncClipIcon(
+                        kind = SyncClipIconKind.LOCK,
+                        contentDescription = null,
+                        tint = scheme.error,
+                        size = 12.dp,
+                    )
+                    Text(
+                        text = badgeLabel,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = scheme.error,
+                        maxLines = 1,
+                    )
+                }
+            }
         }
     }
 }
@@ -216,11 +270,26 @@ private fun PinAction(
     contentDescription: String?,
     onClick: (() -> Unit)?,
 ) {
-    val tint = if (pinned) {
-        MaterialTheme.colorScheme.primary
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
-    }
+    CardAction(
+        kind = SyncClipIconKind.PIN,
+        tint = if (pinned) {
+            MaterialTheme.colorScheme.primary
+        } else {
+            MaterialTheme.colorScheme.onSurfaceVariant
+        },
+        contentDescription = contentDescription,
+        onClick = onClick,
+    )
+}
+
+/** Иконка-действие в шапке карточки: закрепление, избранное. */
+@Composable
+private fun CardAction(
+    kind: SyncClipIconKind,
+    tint: androidx.compose.ui.graphics.Color,
+    contentDescription: String?,
+    onClick: (() -> Unit)?,
+) {
     val modifier = Modifier
         .size(28.dp)
         .clip(CircleShape)
@@ -233,7 +302,7 @@ private fun PinAction(
         )
     Box(modifier = modifier, contentAlignment = Alignment.Center) {
         SyncClipIcon(
-            kind = SyncClipIconKind.PIN,
+            kind = kind,
             contentDescription = contentDescription,
             tint = tint,
             size = 16.dp,

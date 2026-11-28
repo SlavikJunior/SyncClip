@@ -6,7 +6,8 @@ import androidx.compose.ui.graphics.Color
  * Палитра приложения.
  *
  * [swatchColors] — цвета для превью в настройках; для [DYNAMIC] список пуст,
- * потому что цвета берутся из системной обоев через Material You.
+ * потому что цвета берутся из системной обоев через Material You, а для
+ * [RANDOM] — генерируются из seed (`RandomTheme.swatch`).
  */
 public enum class ThemePreset(public val swatchColors: List<Color>) {
     AQUA(
@@ -31,4 +32,7 @@ public enum class ThemePreset(public val swatchColors: List<Color>) {
         ),
     ),
     DYNAMIC(emptyList()),
+
+    /** US-015: палитра генерируется из seed и меняется по кнопке «Обновить». */
+    RANDOM(emptyList()),
 }

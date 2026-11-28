@@ -15,8 +15,11 @@ import org.jetbrains.compose.resources.stringResource
 import syncclip.feature.history.impl.generated.resources.Res
 import syncclip.feature.history.impl.generated.resources.history_filter_all
 import syncclip.feature.history.impl.generated.resources.history_filter_code
+import syncclip.feature.history.impl.generated.resources.history_filter_favorites
 import syncclip.feature.history.impl.generated.resources.history_filter_links
 import syncclip.feature.history.impl.generated.resources.history_filter_pinned
+import syncclip.feature.history.impl.generated.resources.history_expires_soon
+import syncclip.feature.history.impl.generated.resources.history_expires_under_minute
 import syncclip.feature.history.impl.generated.resources.history_source_current
 import syncclip.feature.history.impl.generated.resources.history_source_unknown
 import syncclip.feature.history.impl.generated.resources.history_time_days
@@ -53,8 +56,32 @@ internal fun HistoryTypeLabel(type: HistoryEntryType): String? = when (type) {
 internal fun HistoryFilterLabel(filter: HistoryFilter): String = when (filter) {
     HistoryFilter.ALL -> stringResource(Res.string.history_filter_all)
     HistoryFilter.PINNED -> stringResource(Res.string.history_filter_pinned)
+    HistoryFilter.FAVORITES -> stringResource(Res.string.history_filter_favorites)
     HistoryFilter.LINKS -> stringResource(Res.string.history_filter_links)
     HistoryFilter.CODE -> stringResource(Res.string.history_filter_code)
+}
+
+/**
+ * US-021: сколько минут осталось до автоудаления чувствительной записи.
+ *
+ * `null` — запись бессрочная или срок уже истёк. Минуты округляются вверх:
+ * «через 0 мин» выглядело бы как ошибка, а запись ещё существует.
+ */
+internal fun expiryMinutesLeft(expiresAtMillis: Long?, nowMillis: Long): Int? {
+    val expiresAt = expiresAtMillis ?: return null
+    val remaining = expiresAt - nowMillis
+    if (remaining <= 0L) return null
+    return ((remaining + MINUTE_MILLIS - 1) / MINUTE_MILLIS).toInt()
+}
+
+@Composable
+internal fun HistoryExpiryLabel(expiresAtMillis: Long?, nowMillis: Long): String? {
+    val minutes = expiryMinutesLeft(expiresAtMillis, nowMillis) ?: return null
+    return if (minutes <= 0) {
+        stringResource(Res.string.history_expires_under_minute)
+    } else {
+        stringResource(Res.string.history_expires_soon, minutes)
+    }
 }
 
 @Composable

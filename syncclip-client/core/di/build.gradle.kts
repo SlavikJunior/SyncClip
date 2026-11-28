@@ -5,11 +5,14 @@ plugins {
 kotlin {
     sourceSets {
         commonMain.dependencies {
+            api(project(":core:archive"))
             api(project(":core:clipboard"))
             api(project(":core:database"))
             api(project(":core:datastore"))
             api(project(":core:firebase"))
             api(project(":core:lan"))
+            api(project(":core:platform"))
+            implementation(project(":shared:model"))
             implementation(project(":shared:network"))
             implementation(libs.androidx.room.runtime)
             implementation(libs.koin.core)

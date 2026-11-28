@@ -32,7 +32,17 @@ val historyModule = module {
     }
     single { HistoryPageCache(get(named(HISTORY_PAGE_CACHE))) }
     single<HistoryRepository> { RoomHistoryRepository(get<ClipboardEventDao>(), get()) }
-    factory { HistoryViewModel(get(), getOrNull<DeviceDirectory>(), getOrNull()) }
+    factory {
+        HistoryViewModel(
+            repository = get(),
+            deviceDirectory = getOrNull<DeviceDirectory>(),
+            settings = getOrNull(),
+            // US-020/US-016: копирование и адресная отправка идут через
+            // контракты core, а не через реализацию другой фичи (INV-01).
+            gateway = getOrNull(),
+            sender = getOrNull(),
+        )
+    }
     // eventId приходит параметром Koin: экран деталей открывается для конкретной записи.
     factory { params -> HistoryDetailViewModel(params.get(), get(), getOrNull()) }
 }

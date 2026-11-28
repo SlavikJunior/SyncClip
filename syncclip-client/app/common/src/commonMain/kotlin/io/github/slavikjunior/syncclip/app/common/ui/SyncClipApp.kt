@@ -25,14 +25,21 @@ import io.github.slavikjunior.syncclip.app.common.navigation.AppNavigator
 import io.github.slavikjunior.syncclip.app.common.runtime.AppSectionRequests
 import io.github.slavikjunior.syncclip.app.common.runtime.SyncRuntime
 import io.github.slavikjunior.syncclip.app.common.ui.e2ee.E2eeUnlockScreen
+import io.github.slavikjunior.syncclip.app.common.ui.lock.BiometricLockScreen
 import io.github.slavikjunior.syncclip.app.common.ui.platform.PlatformBackHandler
+import io.github.slavikjunior.syncclip.core.datastore.AppSettings
+import io.github.slavikjunior.syncclip.core.datastore.AppSettingsStore
 import io.github.slavikjunior.syncclip.core.datastore.E2eeKeyStore
 import io.github.slavikjunior.syncclip.core.datastore.E2eeLockoutStore
 import io.github.slavikjunior.syncclip.core.datastore.SessionState
 import io.github.slavikjunior.syncclip.core.datastore.SessionStore
+import io.github.slavikjunior.syncclip.core.designsystem.theme.FontScale
+import io.github.slavikjunior.syncclip.core.designsystem.theme.RandomTheme
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipTheme
+import io.github.slavikjunior.syncclip.core.designsystem.theme.ThemePreset
 import io.github.slavikjunior.syncclip.core.designsystem.theme.ThemeState
 import io.github.slavikjunior.syncclip.core.firebase.PushTokenSource
+import io.github.slavikjunior.syncclip.core.platform.BiometricAuthenticator
 import io.github.slavikjunior.syncclip.feature.auth.api.PushTokenRegistrar
 import io.github.slavikjunior.syncclip.feature.auth.impl.authNavEntry
 import io.github.slavikjunior.syncclip.feature.history.api.navigation.HistoryDetailRoute
@@ -57,6 +64,9 @@ import org.koin.compose.koinInject
 @Composable
 public fun SyncClipApp() {
     var theme by remember { mutableStateOf(ThemeState()) }
+    var fontScale by remember { mutableStateOf(FontScale.MEDIUM) }
+    val appSettingsStore: AppSettingsStore = koinInject()
+    val biometrics: BiometricAuthenticator = koinInject()
     val sessionStore: SessionStore = koinInject()
     val pushTokens: PushTokenSource = koinInject()
     val pushRegistrar: PushTokenRegistrar = koinInject()
@@ -68,10 +78,27 @@ public fun SyncClipApp() {
     val scope = rememberCoroutineScope()
     val sessionState by sessionStore.state.collectAsState()
     val e2eeKey by keyStore.keyState.collectAsState()
+    val locked by biometrics.locked.collectAsState()
     var keyHydrated by remember { mutableStateOf(false) }
 
     LaunchedEffect(sessionStore) {
         sessionStore.refresh()
+    }
+
+    // Тема и размер шрифта — из DataStore (US-011, US-012): после перезапуска
+    // выбор пользователя должен сохраниться, а не сбрасываться в Aqua.
+    LaunchedEffect(appSettingsStore) {
+        val settings = runCatching { appSettingsStore.current() }.getOrNull() ?: AppSettings()
+        theme = settings.appearance.toThemeState()
+        fontScale = settings.appearance.toFontScale()
+        // Биометрия настраивается до первого показа контента: платформа иначе
+        // не знает, блокировать ли приложение при возврате из фона.
+        runCatching {
+            biometrics.configure(
+                enabled = settings.security.biometricLock,
+                timeoutMinutes = settings.security.timeoutMinutes,
+            )
+        }
     }
 
     // Ключ читается из Keystore/Keychain один раз за процесс: до этого нельзя
@@ -109,7 +136,30 @@ public fun SyncClipApp() {
         }
     }
 
-    SyncClipTheme(theme = theme) {
+    // Тема и шрифт сохраняются на каждое изменение: экран настроек живёт
+    // недолго, а выбор должен пережить перезапуск процесса.
+    val onThemeChange: (ThemeState) -> Unit = { updated ->
+        theme = updated
+        scope.launch {
+            runCatching { appSettingsStore.setTheme(updated.mode.name, updated.preset.name) }
+        }
+    }
+    val onRegenerateRandomTheme: () -> Unit = {
+        val seed = RandomTheme.newSeed()
+        theme = theme.copy(preset = ThemePreset.RANDOM, randomSeed = seed)
+        scope.launch {
+            runCatching {
+                appSettingsStore.setTheme(theme.mode.name, ThemePreset.RANDOM.name)
+                appSettingsStore.setRandomThemeSeed(seed)
+            }
+        }
+    }
+    val onFontScaleChange: (FontScale) -> Unit = { scale ->
+        fontScale = scale
+        scope.launch { runCatching { appSettingsStore.setFontScale(scale.multiplier) } }
+    }
+
+    SyncClipTheme(theme = theme, fontScale = fontScale.multiplier) {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background,
@@ -141,11 +191,21 @@ public fun SyncClipApp() {
                         onUnlocked = { key -> scope.launch { keyStore.setKey(key) } },
                     )
 
-                    else -> AppLayout(
-                        theme = theme,
-                        onThemeChange = { updated -> theme = updated },
-                        sectionRequests = sectionRequests,
-                    )
+                    else -> if (locked) {
+                        // US-022: приложение скрыто до подтверждения личности.
+                        // Ключ E2EE при этом уже разблокирован — экран не
+                        // дублирует мастер-пароль.
+                        BiometricLockScreen(authenticator = biometrics)
+                    } else {
+                        AppLayout(
+                            theme = theme,
+                            fontScale = fontScale,
+                            onThemeChange = onThemeChange,
+                            onRegenerateRandomTheme = onRegenerateRandomTheme,
+                            onFontScaleChange = onFontScaleChange,
+                            sectionRequests = sectionRequests,
+                        )
+                    }
                 }
             }
         }
@@ -155,7 +215,10 @@ public fun SyncClipApp() {
 @Composable
 private fun AppLayout(
     theme: ThemeState,
+    fontScale: FontScale,
     onThemeChange: (ThemeState) -> Unit,
+    onRegenerateRandomTheme: () -> Unit,
+    onFontScaleChange: (FontScale) -> Unit,
     sectionRequests: AppSectionRequests,
 ) {
     val navigator = remember { AppNavigator(HistoryRoute) }
@@ -190,7 +253,10 @@ private fun AppLayout(
                 section = section,
                 navigator = navigator,
                 theme = theme,
+                fontScale = fontScale,
                 onThemeChange = onThemeChange,
+                onRegenerateRandomTheme = onRegenerateRandomTheme,
+                onFontScaleChange = onFontScaleChange,
                 modifier = Modifier.padding(padding),
             )
         }
@@ -201,7 +267,10 @@ private fun AppLayout(
                 section = section,
                 navigator = navigator,
                 theme = theme,
+                fontScale = fontScale,
                 onThemeChange = onThemeChange,
+                onRegenerateRandomTheme = onRegenerateRandomTheme,
+                onFontScaleChange = onFontScaleChange,
                 modifier = Modifier.weight(1f),
             )
         }
@@ -213,7 +282,10 @@ private fun AppDestination(
     section: AppSection,
     navigator: AppNavigator,
     theme: ThemeState,
+    fontScale: FontScale,
     onThemeChange: (ThemeState) -> Unit,
+    onRegenerateRandomTheme: () -> Unit,
+    onFontScaleChange: (FontScale) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -236,7 +308,10 @@ private fun AppDestination(
 
             AppSection.SETTINGS -> settingsNavEntry(
                 theme = theme,
+                fontScale = fontScale,
                 onThemeChange = onThemeChange,
+                onRegenerateRandomTheme = onRegenerateRandomTheme,
+                onFontScaleChange = onFontScaleChange,
             )()
         }
     }

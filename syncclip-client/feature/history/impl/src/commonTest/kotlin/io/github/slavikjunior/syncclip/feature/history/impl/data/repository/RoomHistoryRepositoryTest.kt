@@ -93,3 +93,43 @@ internal class RoomHistoryRepositoryTest {
         isPinned = false,
     )
 }
+
+/**
+ * US-017: закреплённые записи остаются в топе и в «Всех», и в «Избранном» —
+ * порядок задаёт SQL (`ORDER BY isPinned DESC, timestampMillis DESC`).
+ */
+internal class PinnedOrderTest {
+
+    private val dao = FakeClipboardEventDao(
+        listOf(
+            ClipboardEventEntity(
+                id = "fresh",
+                text = "fresh",
+                timestampMillis = 2_000,
+                sourceDeviceId = null,
+                isPinned = false,
+            ),
+            ClipboardEventEntity(
+                id = "old-pinned",
+                text = "old pinned",
+                timestampMillis = 1_000,
+                sourceDeviceId = null,
+                isPinned = true,
+            ),
+        ),
+    )
+
+    @Test
+    fun `pinned entry is listed before a newer unpinned one`() = runTest {
+        val page = dao.observePage(limit = 10, offset = 0).first()
+
+        assertEquals(listOf("old-pinned", "fresh"), page.map { it.id })
+    }
+
+    @Test
+    fun `search keeps the same order`() = runTest {
+        val page = dao.observeSearchPage(query = "", limit = 10, offset = 0).first()
+
+        assertEquals(listOf("old-pinned", "fresh"), page.map { it.id })
+    }
+}

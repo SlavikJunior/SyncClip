@@ -19,6 +19,9 @@ dependencies {
     implementation(project(":app:common"))
     implementation(project(":feature:sync:api"))
     implementation(project(":core:firebase"))
+    // Платформенные контракты Phase 2: диалог файлов, биометрия, уведомления.
+    implementation(project(":core:platform"))
+    implementation(project(":core:datastore"))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.koin.android)

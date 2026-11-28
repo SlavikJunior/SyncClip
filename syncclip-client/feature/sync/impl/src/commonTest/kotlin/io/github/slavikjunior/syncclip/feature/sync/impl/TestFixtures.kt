@@ -3,8 +3,14 @@ package io.github.slavikjunior.syncclip.feature.sync.impl
 import io.github.slavikjunior.syncclip.core.clipboard.ClipboardCapture
 import io.github.slavikjunior.syncclip.core.clipboard.ClipboardGateway
 import io.github.slavikjunior.syncclip.core.clipboard.EpochClock
+import io.github.slavikjunior.syncclip.core.clipboard.TargetedClipboardSender
+import io.github.slavikjunior.syncclip.core.clipboard.TargetedSendResult
+import io.github.slavikjunior.syncclip.core.datastore.AppSettings
+import io.github.slavikjunior.syncclip.core.datastore.AppSettingsStore
 import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettings
 import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettingsStore
+import io.github.slavikjunior.syncclip.core.datastore.NotificationSettings
+import io.github.slavikjunior.syncclip.core.datastore.SecuritySettings
 import io.github.slavikjunior.syncclip.core.datastore.DeviceIdentity
 import io.github.slavikjunior.syncclip.core.datastore.DeviceIdentityStore
 import io.github.slavikjunior.syncclip.core.database.ClipboardEventDao
@@ -201,6 +207,15 @@ internal class FakeClipboardEventDao : ClipboardEventDao {
         if (index >= 0) entities[index] = entities[index].copy(isPinned = pinned)
     }
 
+    override suspend fun setFavorite(id: String, favorite: Boolean) {
+        val index = entities.indexOfFirst { it.id == id }
+        if (index >= 0) entities[index] = entities[index].copy(isFavorite = favorite)
+    }
+
+    override suspend fun newestRows(limit: Int): List<ClipboardEventEntity> = entities
+        .sortedByDescending { it.timestampMillis }
+        .take(limit)
+
     override suspend fun delete(id: String) {
         entities.removeAll { it.id == id }
     }
@@ -219,9 +234,19 @@ internal class FakeClipboardEventDao : ClipboardEventDao {
         .filter { !it.isPinned && it.timestampMillis < cutoffMillis }
         .map { it.id }
 
+    override suspend fun expiredSensitiveIds(nowMillis: Long): List<String> = entities
+        .filter { entity ->
+            !entity.isPinned && (entity.expiresAtMillis ?: Long.MAX_VALUE) <= nowMillis
+        }
+        .map { it.id }
+
     private fun page(query: String, limit: Int, offset: Int): List<ClipboardEventEntity> =
         filtered(query)
-            .sortedByDescending { it.timestampMillis }
+            // Как `ORDER BY isPinned DESC, timestampMillis DESC` в DAO.
+            .sortedWith(
+                compareByDescending<ClipboardEventEntity> { it.isPinned }
+                    .thenByDescending { it.timestampMillis },
+            )
             .drop(offset)
             .take(limit)
 
@@ -464,4 +489,58 @@ internal class FakeSignedInSession(val userId: String) : io.github.slavikjunior.
     override suspend fun clear() = Unit
 
     override fun accessToken(): String? = "access"
+}
+
+/** Настройки интерфейса/приватности, управляемые тестом (Phase 2). */
+internal class FakeAppSettingsStore(
+    private val values: MutableStateFlow<AppSettings> = MutableStateFlow(AppSettings()),
+) : AppSettingsStore {
+
+    override val state: Flow<AppSettings> = values
+
+    override suspend fun current(): AppSettings = values.value
+
+    fun update(transform: (AppSettings) -> AppSettings) {
+        values.value = transform(values.value)
+    }
+
+    override suspend fun setTheme(mode: String, preset: String): Boolean {
+        update { it.copy(appearance = it.appearance.copy(themeMode = mode, themePreset = preset)) }
+        return true
+    }
+
+    override suspend fun setRandomThemeSeed(seed: Long) {
+        update { it.copy(appearance = it.appearance.copy(randomThemeSeed = seed)) }
+    }
+
+    override suspend fun setFontScale(scale: Float): Boolean {
+        update { it.copy(appearance = it.appearance.copy(fontScale = scale)) }
+        return true
+    }
+
+    override suspend fun setNotifications(settings: NotificationSettings) {
+        update { it.copy(notifications = settings) }
+    }
+
+    override suspend fun setAutoClearSensitive(enabled: Boolean) {
+        update { it.copy(autoClearSensitive = enabled) }
+    }
+
+    override suspend fun setBiometricLock(enabled: Boolean, timeoutMinutes: Int): Boolean {
+        update { it.copy(security = SecuritySettings(enabled, timeoutMinutes)) }
+        return true
+    }
+}
+
+/** Адресная отправка, управляемая тестом (US-016). */
+internal class FakeTargetedSender(
+    var result: TargetedSendResult = TargetedSendResult.Queued,
+) : TargetedClipboardSender {
+
+    val sent: MutableList<Pair<String, List<String>>> = mutableListOf()
+
+    override suspend fun send(text: String, targetDeviceIds: List<String>): TargetedSendResult {
+        sent += text to targetDeviceIds
+        return result
+    }
 }

@@ -20,6 +20,7 @@ internal object IosClipboardDatabaseFactory : ClipboardDatabaseFactory {
             factory = AppDatabaseConstructor::initialize,
         )
             .setDriver(BundledSQLiteDriver())
+            .addMigrations(*ClipboardMigrations.ALL)
             .build()
     }
 }

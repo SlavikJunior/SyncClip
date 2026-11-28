@@ -49,6 +49,7 @@ import io.github.slavikjunior.syncclip.core.designsystem.component.SettingsRow
 import io.github.slavikjunior.syncclip.core.designsystem.component.StatusPillState
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIcon
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIconKind
+import io.github.slavikjunior.syncclip.core.designsystem.theme.FontScale
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipSpacing
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipTheme
 import io.github.slavikjunior.syncclip.core.designsystem.theme.ThemeMode
@@ -61,6 +62,10 @@ import io.github.slavikjunior.syncclip.feature.settings.impl.presentation.state.
 import org.jetbrains.compose.resources.stringResource
 import syncclip.feature.settings.impl.generated.resources.Res
 import syncclip.feature.settings.impl.generated.resources.settings_appearance
+import syncclip.feature.settings.impl.generated.resources.settings_archive
+import syncclip.feature.settings.impl.generated.resources.settings_notifications
+import syncclip.feature.settings.impl.generated.resources.settings_privacy
+import syncclip.feature.settings.impl.generated.resources.settings_security
 import syncclip.feature.settings.impl.generated.resources.settings_cancel
 import syncclip.feature.settings.impl.generated.resources.settings_devices
 import syncclip.feature.settings.impl.generated.resources.settings_autostart
@@ -81,17 +86,9 @@ import syncclip.feature.settings.impl.generated.resources.settings_devices_count
 import syncclip.feature.settings.impl.generated.resources.settings_devices_hint
 import syncclip.feature.settings.impl.generated.resources.settings_error_load
 import syncclip.feature.settings.impl.generated.resources.settings_icon_label
-import syncclip.feature.settings.impl.generated.resources.settings_mode_dark
-import syncclip.feature.settings.impl.generated.resources.settings_mode_light
-import syncclip.feature.settings.impl.generated.resources.settings_mode_system
 import syncclip.feature.settings.impl.generated.resources.settings_name_label
 import syncclip.feature.settings.impl.generated.resources.settings_no_devices
 import syncclip.feature.settings.impl.generated.resources.settings_no_devices_hint
-import syncclip.feature.settings.impl.generated.resources.settings_palette
-import syncclip.feature.settings.impl.generated.resources.settings_palette_aqua
-import syncclip.feature.settings.impl.generated.resources.settings_palette_dynamic
-import syncclip.feature.settings.impl.generated.resources.settings_palette_monochrome
-import syncclip.feature.settings.impl.generated.resources.settings_palette_winter
 import syncclip.feature.settings.impl.generated.resources.settings_pending
 import syncclip.feature.settings.impl.generated.resources.settings_rename
 import syncclip.feature.settings.impl.generated.resources.settings_retry
@@ -108,7 +105,10 @@ import syncclip.feature.settings.impl.generated.resources.settings_version
 internal fun SettingsContent(
     state: DeviceManagementUiState,
     theme: ThemeState,
+    fontScale: FontScale,
     onThemeChange: (ThemeState) -> Unit,
+    onRegenerateRandomTheme: () -> Unit,
+    onFontScaleChange: (FontScale) -> Unit,
     onIntent: (DeviceIntent) -> Unit,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState? = null,
@@ -142,14 +142,32 @@ internal fun SettingsContent(
             }
 
             SectionHeader(title = stringResource(Res.string.settings_appearance))
-            ThemeModeSelector(
-                mode = theme.mode,
-                onModeChange = { mode -> onThemeChange(theme.copy(mode = mode)) },
+            SettingsAppearanceSection(
+                theme = theme,
+                fontScale = fontScale,
+                onThemeChange = onThemeChange,
+                onRegenerateRandomTheme = onRegenerateRandomTheme,
+                onFontScaleChange = onFontScaleChange,
             )
-            SectionHeader(title = stringResource(Res.string.settings_palette))
-            ThemePresetPicker(
-                preset = theme.preset,
-                onPresetChange = { preset -> onThemeChange(theme.copy(preset = preset)) },
+
+            SectionHeader(title = stringResource(Res.string.settings_notifications))
+            SettingsNotificationsSection(
+                notifications = state.notifications,
+                onIntent = onIntent,
+            )
+
+            SectionHeader(title = stringResource(Res.string.settings_privacy))
+            SettingsPrivacySection(
+                autoClearSensitive = state.autoClearSensitive,
+                onIntent = onIntent,
+            )
+
+            SectionHeader(title = stringResource(Res.string.settings_security))
+            SettingsSecuritySection(
+                biometricAvailable = state.biometricAvailable,
+                biometricLock = state.biometricLock,
+                timeoutMinutes = state.biometricTimeoutMinutes,
+                onIntent = onIntent,
             )
 
             SectionHeader(
@@ -334,6 +352,14 @@ internal fun SettingsContent(
                 )
             }
 
+            SectionHeader(title = stringResource(Res.string.settings_archive))
+            SettingsArchiveSection(
+                documentsSupported = state.documentsSupported,
+                isBusy = state.isArchiveBusy,
+                exportDialogVisible = state.exportDialogVisible,
+                onIntent = onIntent,
+            )
+
             Text(
                 text = stringResource(Res.string.settings_version),
                 style = MaterialTheme.typography.labelSmall,
@@ -348,125 +374,6 @@ internal fun SettingsContent(
         RenameDeviceDialog(state = state, onIntent = onIntent)
     }
 }
-@Composable
-private fun ThemeModeSelector(
-    mode: ThemeMode,
-    onModeChange: (ThemeMode) -> Unit,
-) {
-    val scheme = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.medium)
-            .background(scheme.surfaceVariant)
-            .padding(4.dp),
-        horizontalArrangement = Arrangement.spacedBy(4.dp),
-    ) {
-        ThemeMode.entries.forEach { entry ->
-            val selected = entry == mode
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .height(32.dp)
-                    .clip(MaterialTheme.shapes.small)
-                    .background(if (selected) scheme.surface else Color.Transparent)
-                    .clickable { onModeChange(entry) },
-                contentAlignment = Alignment.Center,
-            ) {
-                Text(
-                    text = ThemeModeLabel(entry),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = if (selected) scheme.onSurface else scheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ThemeModeLabel(mode: ThemeMode): String = when (mode) {
-    ThemeMode.SYSTEM -> stringResource(Res.string.settings_mode_system)
-    ThemeMode.LIGHT -> stringResource(Res.string.settings_mode_light)
-    ThemeMode.DARK -> stringResource(Res.string.settings_mode_dark)
-}
-
-@Composable
-private fun ThemePresetPicker(
-    preset: ThemePreset,
-    onPresetChange: (ThemePreset) -> Unit,
-) {
-    val scheme = MaterialTheme.colorScheme
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
-    ) {
-        ThemePreset.entries.forEach { entry ->
-            val selected = entry == preset
-            val colors = if (entry == ThemePreset.DYNAMIC) {
-                listOf(scheme.primary, scheme.secondary, scheme.tertiary)
-            } else {
-                entry.swatchColors
-            }
-            Column(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(MaterialTheme.shapes.medium)
-                    .clickable { onPresetChange(entry) }
-                    .padding(vertical = 4.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(6.dp),
-            ) {
-                Box {
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .clip(CircleShape)
-                            .background(Brush.linearGradient(colors))
-                            .border(
-                                width = if (selected) 2.dp else 1.dp,
-                                color = if (selected) scheme.primary else scheme.outlineVariant,
-                                shape = CircleShape,
-                            ),
-                    )
-                    if (selected) {
-                        Box(
-                            modifier = Modifier
-                                .align(Alignment.BottomEnd)
-                                .size(16.dp)
-                                .clip(CircleShape)
-                                .background(scheme.surface)
-                                .border(1.dp, scheme.primary, CircleShape),
-                            contentAlignment = Alignment.Center,
-                        ) {
-                            SyncClipIcon(
-                                kind = SyncClipIconKind.CHECK,
-                                contentDescription = null,
-                                tint = scheme.primary,
-                                size = 10.dp,
-                            )
-                        }
-                    }
-                }
-                Text(
-                    text = ThemePresetLabel(entry),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = if (selected) scheme.primary else scheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun ThemePresetLabel(preset: ThemePreset): String = when (preset) {
-    ThemePreset.AQUA -> stringResource(Res.string.settings_palette_aqua)
-    ThemePreset.WINTER -> stringResource(Res.string.settings_palette_winter)
-    ThemePreset.MONOCHROME -> stringResource(Res.string.settings_palette_monochrome)
-    ThemePreset.DYNAMIC -> stringResource(Res.string.settings_palette_dynamic)
-}
-
 @Composable
 private fun RenameDeviceDialog(
     state: DeviceManagementUiState,
@@ -539,7 +446,10 @@ private fun SettingsContentPreview() {
                 ),
             ),
             theme = ThemeState(),
+            fontScale = FontScale.MEDIUM,
             onThemeChange = {},
+            onRegenerateRandomTheme = {},
+            onFontScaleChange = {},
             onIntent = {},
         )
     }

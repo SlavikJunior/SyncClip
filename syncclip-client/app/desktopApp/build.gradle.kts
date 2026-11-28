@@ -32,6 +32,7 @@ compose.desktop {
 dependencies {
     implementation(project(":app:common"))
     implementation(project(":core:datastore"))
+    implementation(project(":core:platform"))
     implementation(compose.desktop.currentOs)
     implementation(libs.koin.core)
     implementation(libs.kotlinx.coroutines.swing)

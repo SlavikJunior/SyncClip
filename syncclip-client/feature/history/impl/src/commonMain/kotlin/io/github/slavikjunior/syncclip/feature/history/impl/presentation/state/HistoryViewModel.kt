@@ -2,6 +2,9 @@ package io.github.slavikjunior.syncclip.feature.history.impl.presentation.state
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.slavikjunior.syncclip.core.clipboard.ClipboardGateway
+import io.github.slavikjunior.syncclip.core.clipboard.TargetedClipboardSender
+import io.github.slavikjunior.syncclip.core.clipboard.TargetedSendResult
 import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettings
 import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettingsStore
 import io.github.slavikjunior.syncclip.feature.history.impl.domain.model.HistoryEntry
@@ -14,6 +17,7 @@ import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -23,16 +27,24 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.receiveAsFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlin.time.Clock
+import syncclip.feature.history.impl.generated.resources.Res
+import syncclip.feature.history.impl.generated.resources.history_copied
+import syncclip.feature.history.impl.generated.resources.history_copy_failed
+import syncclip.feature.history.impl.generated.resources.history_send_empty
+import syncclip.feature.history.impl.generated.resources.history_send_no_devices
+import syncclip.feature.history.impl.generated.resources.history_send_offline
+import syncclip.feature.history.impl.generated.resources.history_sent
 
 @OptIn(ExperimentalCoroutinesApi::class, FlowPreview::class)
 internal class HistoryViewModel(
     private val repository: HistoryRepository,
     private val deviceDirectory: DeviceDirectory? = null,
     private val settings: ClipboardSettingsStore? = null,
+    private val gateway: ClipboardGateway? = null,
+    private val sender: TargetedClipboardSender? = null,
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(HistoryUiState(isLoading = true))
@@ -130,18 +142,27 @@ internal class HistoryViewModel(
             HistoryIntent.LoadNextPage -> onLoadNextPage()
             is HistoryIntent.Select -> onSelect(intent.id, intent.navigate)
             is HistoryIntent.TogglePin -> onTogglePin(intent.id)
+            is HistoryIntent.ToggleFavorite -> onToggleFavorite(intent.id)
+            is HistoryIntent.CopyToClipboard -> onCopy(intent.id)
             is HistoryIntent.Delete -> onDelete(intent.id)
             is HistoryIntent.Restore -> onRestore(intent.entry)
             HistoryIntent.DismissError -> _state.update { it.copy(error = null) }
+            HistoryIntent.OpenSendTargets -> openSendTargets()
+            HistoryIntent.DismissSendTargets -> _state.update { it.copy(sendDialog = null) }
+            is HistoryIntent.ToggleSendTarget -> toggleSendTarget(intent.deviceId)
+            HistoryIntent.ConfirmSend -> confirmSend()
         }
     }
 
     private fun onLoad() {
         viewModelScope.launch {
+            val nowMillis = Clock.System.now().toEpochMilliseconds()
+            // US-021: просроченные чувствительные записи удаляются при открытии
+            // экрана — отдельного планировщика нет, а данные не копятся.
+            runCatching { repository.clearExpiredSensitive(nowMillis) }
             // FR-4.3: лимиты берутся из настроек; без них — значения паспорта.
             val limits = settings?.current() ?: ClipboardSettings()
-            val cutoff = Clock.System.now().toEpochMilliseconds() -
-                limits.ttlHours * 60L * 60L * 1000L
+            val cutoff = nowMillis - limits.ttlHours * 60L * 60L * 1000L
             // Вытеснение — обслуживание истории: его сбой не должен ронять экран.
             runCatching { repository.evictExpired(cutoff, limits.maxEntries) }
         }
@@ -221,6 +242,96 @@ internal class HistoryViewModel(
         }
     }
 
+    private fun onToggleFavorite(id: String) {
+        viewModelScope.launch {
+            val entry = _state.value.entries.firstOrNull { it.id == id } ?: return@launch
+            val favorite = !entry.isFavorite
+            if (runCatching { repository.setFavorite(id, favorite) }.isFailure) return@launch
+            _state.update { state ->
+                val updated = state.entries.map {
+                    if (it.id == id) it.copy(isFavorite = favorite) else it
+                }
+                state.copy(entries = updated.filter { state.filter.matches(it) })
+            }
+        }
+    }
+
+    private fun onCopy(id: String) {
+        viewModelScope.launch {
+            val entry = _state.value.entries.firstOrNull { it.id == id } ?: return@launch
+            val target = gateway ?: return@launch
+            val copied = runCatching { target.insert(entry.text) }.isSuccess
+            _effect.send(
+                HistoryEffect.ShowMessage(
+                    if (copied) Res.string.history_copied else Res.string.history_copy_failed,
+                ),
+            )
+        }
+    }
+
+    private fun openSendTargets() {
+        viewModelScope.launch {
+            _state.update { it.copy(sendDialog = SendDialogUiState(isLoading = true)) }
+            val devices = runCatching { deviceDirectory?.devices() }.getOrNull().orEmpty()
+            // Себе отправлять нечего: пакет вернётся эхом и будет отброшен.
+            val targets = devices
+                .filterNot { device -> device.isCurrent }
+                .map { device -> SendTargetUi(device.id, device.name, device.icon) }
+            if (targets.isEmpty()) {
+                _state.update { it.copy(sendDialog = null) }
+                _effect.send(HistoryEffect.ShowMessage(Res.string.history_send_no_devices))
+                return@launch
+            }
+            _state.update {
+                it.copy(
+                    sendDialog = SendDialogUiState(
+                        targets = targets,
+                        // По умолчанию выбраны все устройства (US-016).
+                        selectedIds = targets.map { target -> target.id }.toSet(),
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun toggleSendTarget(deviceId: String) {
+        _state.update { current ->
+            val dialog = current.sendDialog ?: return@update current
+            if (dialog.targets.none { target -> target.id == deviceId }) return@update current
+            val selected = if (deviceId in dialog.selectedIds) {
+                dialog.selectedIds - deviceId
+            } else {
+                dialog.selectedIds + deviceId
+            }
+            current.copy(sendDialog = dialog.copy(selectedIds = selected))
+        }
+    }
+
+    private fun confirmSend() {
+        viewModelScope.launch {
+            val dialog = _state.value.sendDialog ?: return@launch
+            if (!dialog.canSend) return@launch
+            _state.update { it.copy(sendDialog = dialog.copy(isSending = true)) }
+            val text = runCatching { gateway?.currentText() }.getOrNull()
+            if (text.isNullOrBlank()) {
+                closeSendDialog(Res.string.history_send_empty)
+                return@launch
+            }
+            val result = sender?.send(text, dialog.selectedIds.toList())
+                ?: TargetedSendResult.Offline
+            when (result) {
+                TargetedSendResult.Queued -> closeSendDialog(Res.string.history_sent)
+                TargetedSendResult.Offline -> closeSendDialog(Res.string.history_send_offline)
+                TargetedSendResult.Empty -> closeSendDialog(Res.string.history_send_empty)
+            }
+        }
+    }
+
+    private suspend fun closeSendDialog(message: org.jetbrains.compose.resources.StringResource) {
+        _state.update { it.copy(sendDialog = null) }
+        _effect.send(HistoryEffect.ShowMessage(message))
+    }
+
     private fun onDelete(id: String) {
         viewModelScope.launch {
             val entry = _state.value.entries.firstOrNull { it.id == id } ?: return@launch
@@ -263,6 +374,8 @@ internal class HistoryViewModel(
         sourceDeviceName = device?.name,
         sourceIcon = device?.icon,
         type = HistoryEntryType.fromText(text),
+        isFavorite = isFavorite,
+        expiresAtMillis = expiresAtMillis,
     )
 
     private fun HistoryEntryUi.toDomain(): HistoryEntry = HistoryEntry(
@@ -271,6 +384,8 @@ internal class HistoryViewModel(
         timestampMillis = timestampMillis,
         sourceDeviceId = sourceDeviceId,
         isPinned = isPinned,
+        isFavorite = isFavorite,
+        expiresAtMillis = expiresAtMillis,
     )
 
     private companion object {

@@ -3,6 +3,7 @@ package io.github.slavikjunior.syncclip.feature.sync.impl
 import io.github.slavikjunior.syncclip.core.cache.KacheWrapper
 import io.github.slavikjunior.syncclip.core.cache.KeyValueCache
 import io.github.slavikjunior.syncclip.core.clipboard.EpochClock
+import io.github.slavikjunior.syncclip.core.clipboard.TargetedClipboardSender
 import io.github.slavikjunior.syncclip.core.datastore.DeviceIdentityStore
 import io.github.slavikjunior.syncclip.core.datastore.SessionStore
 import io.github.slavikjunior.syncclip.feature.sync.api.ClipboardCaptureStarter
@@ -61,7 +62,12 @@ val syncModule = module {
     single { AcceptLocalCaptureUseCase() }
     single { ResolveIncomingClipboardUseCase() }
     single<ClipboardHistoryWriter> {
-        RoomClipboardHistoryWriter(dao = get(), clock = EpochClock.System, settings = get())
+        RoomClipboardHistoryWriter(
+            dao = get(),
+            clock = EpochClock.System,
+            settings = get(),
+            appSettings = getOrNull(),
+        )
     }
     single {
         ClipboardCaptureRepository(
@@ -85,6 +91,9 @@ val syncModule = module {
             historyWriter = get(),
             settings = get(),
             clock = EpochClock.System,
+            appSettings = getOrNull(),
+            notifier = getOrNull(),
+            deviceDirectory = getOrNull(),
         )
     }
     single<PayloadCipher> { AesGcmPayloadCipher() }
@@ -126,6 +135,9 @@ val syncModule = module {
         )
     }
     single<SyncTransportStarter> { get<SyncTransport>() }
+    // US-016: адресная отправка живёт в том же транспорте — второй WebSocket
+    // не нужен, очередь кадров и шифрование общие.
+    single<TargetedClipboardSender> { get<SyncTransport>() }
     single<E2eeKeyProvisioner> {
         KtorE2eeKeyProvisioner(
             client = get(),

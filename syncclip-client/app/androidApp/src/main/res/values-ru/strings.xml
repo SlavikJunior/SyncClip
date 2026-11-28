@@ -1,0 +1,9 @@
+<resources>
+    <string name="app_name">SyncClip</string>
+    <string name="capture_done">Сохранено в SyncClip</string>
+    <string name="capture_empty">Нечего отправить</string>
+    <string name="tile_capture_label">Захватить буфер</string>
+    <string name="push_new_clip_title">Новая копия</string>
+    <string name="push_new_clip_body">С устройства %1$s</string>
+    <string name="push_new_clip_body_unknown">С другого устройства</string>
+</resources>

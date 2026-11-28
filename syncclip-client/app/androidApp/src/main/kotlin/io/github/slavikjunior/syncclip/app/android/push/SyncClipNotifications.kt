@@ -14,7 +14,9 @@ import io.github.slavikjunior.syncclip.app.android.R
  * Канал и показ уведомлений SyncClip.
  *
  * Сервер присылает `notification` + `data`; в фоне систему уведомляет сам FCM,
- * поэтому [show] вызывается только когда приложение на экране.
+ * поэтому [show] вызывается только когда приложение на экране. Звук и вибрация
+ * приходят из настроек (US-009): канал создаётся один раз, поэтому громкость
+ * задаётся на уровне уведомления, а не канала.
  */
 internal object SyncClipNotifications {
 
@@ -32,7 +34,13 @@ internal object SyncClipNotifications {
             ?.createNotificationChannel(channel)
     }
 
-    fun show(context: Context, title: String, body: String) {
+    fun show(
+        context: Context,
+        title: String,
+        body: String,
+        sound: Boolean = true,
+        vibration: Boolean = true,
+    ) {
         // Проверка встроена в метод: lint (MissingPermission) не видит её в helper.
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
             ContextCompat.checkSelfPermission(
@@ -42,12 +50,20 @@ internal object SyncClipNotifications {
         ) {
             return
         }
+        val defaults = when {
+            sound && vibration -> NotificationCompat.DEFAULT_ALL
+            sound -> NotificationCompat.DEFAULT_SOUND
+            vibration -> NotificationCompat.DEFAULT_VIBRATE
+            else -> 0
+        }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)
             .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setSilent(defaults == 0)
+            .setDefaults(defaults)
             .build()
         NotificationManagerCompat.from(context).notify(nextNotificationId(), notification)
     }

@@ -17,4 +17,8 @@
     <string name="tray_status_offline">SyncClip — offline</string>
     <string name="e2ee_locked">Input is locked. Try again in %1$s</string>
     <string name="e2ee_attempts_left">Attempts left: %1$d</string>
+    <string name="lock_title">SyncClip is locked</string>
+    <string name="lock_hint">Confirm your identity to see the clipboard history</string>
+    <string name="lock_unlock">Unlock</string>
+    <string name="lock_failed">Confirmation failed. Try again</string>
 </resources>

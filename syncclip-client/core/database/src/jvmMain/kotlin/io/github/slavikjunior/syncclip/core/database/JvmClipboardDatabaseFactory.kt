@@ -16,6 +16,7 @@ internal object JvmClipboardDatabaseFactory : ClipboardDatabaseFactory {
             factory = AppDatabaseConstructor::initialize,
         )
             .setDriver(BundledSQLiteDriver())
+            .addMigrations(*ClipboardMigrations.ALL)
             .build()
     }
 }

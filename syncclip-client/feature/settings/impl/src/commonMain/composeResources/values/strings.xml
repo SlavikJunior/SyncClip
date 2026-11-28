@@ -10,6 +10,13 @@
     <string name="settings_palette_winter">Winter</string>
     <string name="settings_palette_monochrome">Monochrome</string>
     <string name="settings_palette_dynamic">Dynamic</string>
+    <string name="settings_palette_random">Random</string>
+    <string name="settings_palette_regenerate">New colors</string>
+    <string name="settings_font_size">Font size</string>
+    <string name="settings_font_small">Small</string>
+    <string name="settings_font_medium">Medium</string>
+    <string name="settings_font_large">Large</string>
+    <string name="settings_font_extra_large">Extra large</string>
     <string name="settings_devices">Devices</string>
     <string name="settings_devices_count">Total: %1$d</string>
     <string name="settings_devices_hint">Tap a device to rename it</string>
@@ -51,4 +58,40 @@
     <string name="settings_icon_desktop">Desktop</string>
     <string name="settings_icon_watch">Watch</string>
     <string name="settings_icon_tv">TV</string>
+
+    <string name="settings_notifications">Notifications</string>
+    <string name="settings_notify_new_copies">New copies</string>
+    <string name="settings_notify_new_copies_hint">Notify when another device sends a clip</string>
+    <string name="settings_notify_new_device">New device</string>
+    <string name="settings_notify_new_device_hint">Notify when a device is added to the account</string>
+    <string name="settings_notify_failed_sign_in">Failed sign-in</string>
+    <string name="settings_notify_failed_sign_in_hint">Notify about failed master password attempts</string>
+    <string name="settings_notify_sound">Sound</string>
+    <string name="settings_notify_vibration">Vibration</string>
+
+    <string name="settings_privacy">Privacy</string>
+    <string name="settings_auto_clear_sensitive">Auto-delete sensitive data</string>
+    <string name="settings_auto_clear_sensitive_hint">Passwords and tokens are removed from history after 5 minutes</string>
+
+    <string name="settings_security">Security</string>
+    <string name="settings_biometric_lock">Biometric lock</string>
+    <string name="settings_biometric_lock_hint">Require Face ID or fingerprint after the app was in background</string>
+    <string name="settings_biometric_unavailable">Biometrics is not available on this device</string>
+    <string name="settings_biometric_timeout">Lock after</string>
+    <string name="settings_biometric_timeout_immediate">Immediately</string>
+    <string name="settings_biometric_timeout_minutes">%1$d min</string>
+
+    <string name="settings_archive">History archive</string>
+    <string name="settings_archive_hint">Export a backup or import entries from a previous install</string>
+    <string name="settings_archive_export">Export history</string>
+    <string name="settings_archive_import">Import history</string>
+    <string name="settings_archive_warning">The file contains unencrypted data — keep it in a safe place. Up to 1000 latest entries are exported.</string>
+    <string name="settings_archive_format_json">JSON</string>
+    <string name="settings_archive_format_csv">CSV</string>
+    <string name="settings_archive_exported">Saved: %1$s</string>
+    <string name="settings_archive_exported_generic">History exported</string>
+    <string name="settings_archive_imported">Imported: %1$d, skipped: %2$d</string>
+    <string name="settings_archive_invalid">Invalid file format</string>
+    <string name="settings_archive_empty">The file has no entries</string>
+    <string name="settings_archive_failed">Could not complete the operation</string>
 </resources>

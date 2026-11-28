@@ -45,6 +45,19 @@ internal class RoomHistoryRepository(
         pageCache.invalidate()
     }
 
+    override suspend fun setFavorite(id: String, favorite: Boolean) {
+        dao.setFavorite(id, favorite)
+        pageCache.invalidate()
+    }
+
+    override suspend fun clearExpiredSensitive(nowMillis: Long): Int {
+        val ids = dao.expiredSensitiveIds(nowMillis)
+        if (ids.isEmpty()) return 0
+        dao.deleteByIds(ids)
+        pageCache.invalidate()
+        return ids.size
+    }
+
     override suspend fun evictExpired(cutoffMillis: Long, maxCount: Int): Int {
         val ids = dao.expiredUnpinnedIds(cutoffMillis).toMutableSet()
         val total = dao.count("")

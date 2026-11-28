@@ -33,6 +33,10 @@ internal class FakeHistoryRepository(
 
     override suspend fun setPinned(id: String, pinned: Boolean) = Unit
 
+    override suspend fun setFavorite(id: String, favorite: Boolean) = Unit
+
+    override suspend fun clearExpiredSensitive(nowMillis: Long): Int = 0
+
     var lastEvictionCutoff: Long? = null
     var lastEvictionMaxCount: Int? = null
 

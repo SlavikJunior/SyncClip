@@ -1,6 +1,8 @@
 package io.github.slavikjunior.syncclip.feature.settings.impl.presentation.state
 
 import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettings
+import io.github.slavikjunior.syncclip.core.datastore.NotificationSettings
+import io.github.slavikjunior.syncclip.core.datastore.SecuritySettings
 import io.github.slavikjunior.syncclip.feature.settings.impl.domain.model.DeviceItem
 import io.github.slavikjunior.syncclip.feature.settings.impl.domain.model.DeviceKind
 import org.jetbrains.compose.resources.StringResource
@@ -21,6 +23,17 @@ internal data class DeviceManagementUiState(
     val maxBytesMbInput: String = (ClipboardSettings.DEFAULT_MAX_BYTES / MEBIBYTE).toString(),
     val limitsError: StringResource? = null,
     val isLimitsSaving: Boolean = false,
+    // ---- Phase 2: уведомления, приватность, безопасность, архив ----
+    val notifications: NotificationSettings = NotificationSettings(),
+    val autoClearSensitive: Boolean = false,
+    /** US-022: есть ли на устройстве настроенная биометрия. */
+    val biometricAvailable: Boolean = false,
+    val biometricLock: Boolean = false,
+    val biometricTimeoutMinutes: Int = SecuritySettings.DEFAULT_TIMEOUT_MINUTES,
+    /** US-018/US-024: платформа умеет открывать системный диалог файлов. */
+    val documentsSupported: Boolean = false,
+    val isArchiveBusy: Boolean = false,
+    val exportDialogVisible: Boolean = false,
 ) {
     private companion object {
         const val MEBIBYTE = 1024L * 1024L

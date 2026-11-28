@@ -16,6 +16,7 @@ kotlin {
             implementation(project(":core:database"))
             implementation(project(":core:datastore"))
             implementation(project(":core:lan"))
+            implementation(project(":core:platform"))
             implementation(project(":core:designsystem"))
             implementation(libs.koin.core)
             // koinViewModel(): ViewModel живёт в ViewModelStore, а не в remember (INV-08).

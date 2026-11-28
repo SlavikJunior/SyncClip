@@ -5,6 +5,8 @@ import io.github.slavikjunior.syncclip.core.cache.KeyValueCache
 import io.github.slavikjunior.syncclip.core.database.PendingDeviceUpdateDao
 import io.github.slavikjunior.syncclip.core.datastore.AutoStart
 import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettingsStore
+import io.github.slavikjunior.syncclip.feature.settings.impl.data.archive.DocumentHistoryArchiveService
+import io.github.slavikjunior.syncclip.feature.settings.impl.domain.repository.HistoryArchiveService
 import io.github.slavikjunior.syncclip.feature.settings.impl.data.cache.DeviceCache
 import io.github.slavikjunior.syncclip.feature.settings.impl.data.remote.DeviceApi
 import io.github.slavikjunior.syncclip.feature.settings.impl.data.remote.KtorDeviceApi
@@ -27,6 +29,9 @@ private const val DEVICE_DIRECTORY_CACHE = "device-directory-cache"
 /** Публичный DI-контракт фичи. */
 val settingsModule = module {
     single<DeviceApi> { KtorDeviceApi(get()) }
+    single<HistoryArchiveService> {
+        DocumentHistoryArchiveService(archive = get(), documents = get())
+    }
     // Каталог устройств нужен каждому экрану истории и синхронизации, поэтому
     // кэш живёт в application-scope, а не в ViewModel.
     single<KeyValueCache<String, List<Device>>>(named(DEVICE_DIRECTORY_CACHE)) {
@@ -43,6 +48,12 @@ val settingsModule = module {
             validateName = get(),
             autoStart = getOrNull<AutoStart>(),
             settings = getOrNull<ClipboardSettingsStore>(),
+            // Phase 2: уведомления, приватность, биометрия и архив — из core
+            // и собственного data-слоя (INV-01, INV-22).
+            appSettings = getOrNull(),
+            biometrics = getOrNull(),
+            documents = getOrNull(),
+            archive = getOrNull(),
         )
     }
 }

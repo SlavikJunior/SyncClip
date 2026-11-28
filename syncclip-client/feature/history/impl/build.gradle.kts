@@ -13,6 +13,7 @@ kotlin {
             implementation(project(":core:database"))
             implementation(project(":core:datastore"))
             implementation(project(":core:cache"))
+            implementation(project(":core:clipboard"))
             implementation(project(":core:designsystem"))
             implementation(project(":core:di"))
             implementation(project(":feature:history:api"))

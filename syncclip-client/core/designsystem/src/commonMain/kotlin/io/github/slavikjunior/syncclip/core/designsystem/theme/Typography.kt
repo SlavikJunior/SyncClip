@@ -18,9 +18,9 @@ import syncclip.core.designsystem.generated.resources.jetbrains_mono_variable
  * вариативные, лежат в `composeResources/font` с лицензиями OFL.
  */
 @Composable
-internal fun SyncClipTypography(): Typography {
+internal fun SyncClipTypography(scale: Float = 1.0f): Typography {
     val ui = SyncClipUiFontFamily()
-    return Typography(
+    val base = Typography(
         displayLarge = TextStyle(
             fontFamily = ui,
             fontWeight = FontWeight.Bold,
@@ -126,6 +126,40 @@ internal fun SyncClipTypography(): Typography {
             lineHeight = 14.sp,
             letterSpacing = 0.5.sp,
         ),
+    )
+    // Масштаб шрифта (US-011) применяется к готовому Typography: так размеры
+    // остаются в одном месте, а экран настроек меняет одно число.
+    return base.scaled(scale)
+}
+
+/**
+ * Умножает размеры и межстрочные интервалы на [scale].
+ *
+ * `sp` уже учитывает системный font scale, поэтому множитель умножается поверх
+ * него — оба требования (своя настройка и системная доступность) работают вместе.
+ */
+internal fun Typography.scaled(scale: Float): Typography {
+    if (scale == 1.0f) return this
+    fun TextStyle.grow(): TextStyle = copy(
+        fontSize = fontSize * scale,
+        lineHeight = lineHeight * scale,
+    )
+    return Typography(
+        displayLarge = displayLarge.grow(),
+        displayMedium = displayMedium.grow(),
+        displaySmall = displaySmall.grow(),
+        headlineLarge = headlineLarge.grow(),
+        headlineMedium = headlineMedium.grow(),
+        headlineSmall = headlineSmall.grow(),
+        titleLarge = titleLarge.grow(),
+        titleMedium = titleMedium.grow(),
+        titleSmall = titleSmall.grow(),
+        bodyLarge = bodyLarge.grow(),
+        bodyMedium = bodyMedium.grow(),
+        bodySmall = bodySmall.grow(),
+        labelLarge = labelLarge.grow(),
+        labelMedium = labelMedium.grow(),
+        labelSmall = labelSmall.grow(),
     )
 }
 

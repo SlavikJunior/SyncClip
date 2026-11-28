@@ -3,13 +3,18 @@ package io.github.slavikjunior.syncclip.feature.sync.impl.data.repository
 import io.github.slavikjunior.syncclip.core.clipboard.ClipboardGateway
 import io.github.slavikjunior.syncclip.core.clipboard.ClipboardLimits
 import io.github.slavikjunior.syncclip.core.clipboard.EpochClock
+import io.github.slavikjunior.syncclip.core.datastore.AppSettingsStore
 import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettingsStore
+import io.github.slavikjunior.syncclip.core.platform.IncomingClipNotifier
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.model.IncomingClipboardAction
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.model.IncomingClipboardPacket
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.repository.ClipboardHistoryWriter
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.repository.ClipboardIncomingSink
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.usecase.DeduplicateEventUseCase
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.usecase.ResolveIncomingClipboardUseCase
+import io.github.slavikjunior.syncclip.shared.model.DeviceDirectory
+import io.github.slavikjunior.syncclip.shared.model.deviceName
+
 
 /**
  * Единая обработка входящего пакета для всех транспортов (FR-2.5, FR-2.8).
@@ -29,6 +34,9 @@ internal class DefaultClipboardIncomingSink(
     private val historyWriter: ClipboardHistoryWriter,
     private val settings: ClipboardSettingsStore,
     private val clock: EpochClock,
+    private val appSettings: AppSettingsStore? = null,
+    private val notifier: IncomingClipNotifier? = null,
+    private val deviceDirectory: DeviceDirectory? = null,
 ) : ClipboardIncomingSink {
 
     override suspend fun receive(packet: IncomingClipboardPacket): IncomingClipboardAction {
@@ -62,7 +70,25 @@ internal class DefaultClipboardIncomingSink(
         if (action == IncomingClipboardAction.SAVE_AND_INSERT) {
             runCatching { gateway.insert(packet.text) }
         }
+        notifyIncomingCopy(packet.originDeviceId)
         return action
+    }
+
+    /**
+     * US-009: локальное уведомление о копии с другого устройства.
+     *
+     * Выключено по умолчанию, поэтому проверка настроек — до любых обращений к
+     * платформе. Имя устройства берётся из кэша каталога; его отсутствие не
+     * мешает показать уведомление без имени.
+     */
+    private suspend fun notifyIncomingCopy(originDeviceId: String) {
+        val target = notifier ?: return
+        val enabled = runCatching {
+            appSettings?.current()?.notifications?.newCopies ?: false
+        }.getOrDefault(false)
+        if (!enabled) return
+        val deviceName = runCatching { deviceDirectory?.deviceName(originDeviceId) }.getOrNull()
+        runCatching { target.notifyIncoming(deviceName) }
     }
 
     /**
