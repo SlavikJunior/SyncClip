@@ -25,6 +25,7 @@ import io.github.slavikjunior.syncclip.shared.crypto.PayloadHash
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.currentCoroutineContext
@@ -58,7 +59,18 @@ internal class LanSyncTransport(
     private val ackTimeoutMillis: Long = DEFAULT_ACK_TIMEOUT_MILLIS,
 ) : LanTransportStarter, ServerPacketSource {
 
-    private val fallbackQueue = Channel<SyncPacket>(Channel.UNLIMITED)
+    /**
+     * Очередь пакетов, которые не доставлены по LAN (нет пиров или нет ACK).
+     *
+     * Ограничена: если WAN-транспорт не подключён (мастер-пароль не введён,
+     * сервер недоступен, SUSPENDED), эту очередь никто не читает, и
+     * `UNLIMITED` превратился бы в утечку памяти на каждом копировании.
+     * Как и исходящий поток захвата, теряем самые старые пакеты.
+     */
+    private val fallbackQueue = Channel<SyncPacket>(
+        capacity = FALLBACK_CAPACITY,
+        onBufferOverflow = BufferOverflow.DROP_OLDEST,
+    )
     private val fallbackFlow: Flow<SyncPacket> = fallbackQueue.receiveAsFlow()
 
     override fun serverPackets(): Flow<SyncPacket> = fallbackFlow
@@ -81,8 +93,10 @@ internal class LanSyncTransport(
             }.getOrNull()
 
             if (port == null) {
-                // Сервер не поднялся (занят порт/нет сети): всё уходит на сервер.
-                forwardAllWhileOnline()
+                // Сервер не поднялся (занят порт/нет сети): всё уходит на сервер,
+                // но через [LAN_RETRY_MILLIS] пробуем поднять LAN снова — сеть
+                // могла появиться (VPN отключён, порт освободился).
+                forwardAllWhileOnline(LAN_RETRY_MILLIS)
                 continue
             }
 
@@ -95,7 +109,7 @@ internal class LanSyncTransport(
                 // работает, но WAN обязан продолжать получать пакеты.
                 runCatching { discovery.stop() }
                 runCatching { server.stop() }
-                forwardAllWhileOnline()
+                forwardAllWhileOnline(LAN_RETRY_MILLIS)
                 continue
             }
             try {
@@ -191,6 +205,9 @@ internal class LanSyncTransport(
     ) {
         try {
             if (!settings.current().isOnline) return
+            // Без таймаута «подключился и молчит» держал бы корутину и сокет
+            // вечно: одна такая связь на попытку — и соединения кончатся.
+            stream.setReadTimeout(FRAME_READ_TIMEOUT_MILLIS)
             val frame = LanFrames.read(stream) ?: return
             val message = WsCodec.decode(frame) ?: return
             if (message !is ServerMessage.SyncEvent) return
@@ -217,17 +234,31 @@ internal class LanSyncTransport(
         }
     }
 
-    private suspend fun forwardAllWhileOnline() {
+    /**
+     * Отправляет всё на сервер, пока LAN недоступен.
+     *
+     * @param retryAfterMillis если задано, через это время возвращается, чтобы
+     *   внешний цикл попробовал поднять LAN ещё раз.
+     */
+    private suspend fun forwardAllWhileOnline(retryAfterMillis: Long? = null) {
         try {
             coroutineScope {
                 launch {
                     settings.state.first { !it.isOnline }
                     throw OfflineSignal()
                 }
+                if (retryAfterMillis != null) {
+                    launch {
+                        delay(retryAfterMillis)
+                        throw LanRetrySignal()
+                    }
+                }
                 outgoing.outgoingPackets().collect { packet -> fallbackQueue.send(packet) }
             }
         } catch (_: OfflineSignal) {
             // Offline: отправка прекращается до возврата в Online.
+        } catch (_: LanRetrySignal) {
+            // Пора попробовать LAN заново.
         }
     }
 
@@ -241,9 +272,20 @@ internal class LanSyncTransport(
 
     private class OfflineSignal : Exception()
 
+    private class LanRetrySignal : Exception()
+
     private companion object {
         /** FR-2.6: ACK от пира ждём не дольше 300 мс. */
         const val DEFAULT_ACK_TIMEOUT_MILLIS = 300L
         const val KEY_POLL_MILLIS = 500L
+
+        /** Сколько ждём кадр от подключившегося пира, прежде чем закрыть связь. */
+        const val FRAME_READ_TIMEOUT_MILLIS = 5_000L
+
+        /** Предел неотданных LAN-пакетов; старшие вытесняются (см. [fallbackQueue]). */
+        const val FALLBACK_CAPACITY = 32
+
+        /** Как часто пробуем поднять LAN-сервер и mDNS после сбоя. */
+        const val LAN_RETRY_MILLIS = 30_000L
     }
 }
