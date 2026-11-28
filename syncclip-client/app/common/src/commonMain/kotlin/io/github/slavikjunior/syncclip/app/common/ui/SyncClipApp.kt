@@ -1,15 +1,13 @@
 package io.github.slavikjunior.syncclip.app.common.ui
 
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.adaptive.ExperimentalMaterial3AdaptiveApi
+import androidx.compose.material3.adaptive.navigation3.rememberListDetailSceneStrategy
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
-import androidx.compose.material3.adaptive.currentWindowAdaptiveInfo
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -17,22 +15,30 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.window.core.layout.WindowWidthSizeClass
-import io.github.slavikjunior.syncclip.app.common.navigation.AppNavigator
+import androidx.navigation3.runtime.NavKey
+import androidx.navigation3.runtime.entryProvider
+import androidx.navigation3.runtime.rememberNavBackStack
+import androidx.navigation3.ui.NavDisplay
+import io.github.slavikjunior.syncclip.app.common.navigation.AppNavSavedState
+import io.github.slavikjunior.syncclip.app.common.navigation.push
+import io.github.slavikjunior.syncclip.app.common.navigation.resetTo
+import io.github.slavikjunior.syncclip.app.common.navigation.rootRoute
 import io.github.slavikjunior.syncclip.app.common.runtime.AppSectionRequests
 import io.github.slavikjunior.syncclip.app.common.runtime.SyncRuntime
 import io.github.slavikjunior.syncclip.app.common.ui.e2ee.E2eeUnlockScreen
 import io.github.slavikjunior.syncclip.app.common.ui.lock.BiometricLockScreen
-import io.github.slavikjunior.syncclip.app.common.ui.platform.PlatformBackHandler
 import io.github.slavikjunior.syncclip.core.datastore.AppSettings
 import io.github.slavikjunior.syncclip.core.datastore.AppSettingsStore
 import io.github.slavikjunior.syncclip.core.datastore.E2eeKeyStore
 import io.github.slavikjunior.syncclip.core.datastore.E2eeLockoutStore
 import io.github.slavikjunior.syncclip.core.datastore.SessionState
 import io.github.slavikjunior.syncclip.core.datastore.SessionStore
+import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipNavigationItem
+import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipNavigationScaffold
 import io.github.slavikjunior.syncclip.core.designsystem.theme.FontScale
 import io.github.slavikjunior.syncclip.core.designsystem.theme.RandomTheme
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipTheme
@@ -41,16 +47,16 @@ import io.github.slavikjunior.syncclip.core.designsystem.theme.ThemeState
 import io.github.slavikjunior.syncclip.core.firebase.PushTokenSource
 import io.github.slavikjunior.syncclip.core.platform.BiometricAuthenticator
 import io.github.slavikjunior.syncclip.feature.auth.api.PushTokenRegistrar
+import io.github.slavikjunior.syncclip.feature.auth.api.navigation.AuthRoute
 import io.github.slavikjunior.syncclip.feature.auth.impl.authNavEntry
 import io.github.slavikjunior.syncclip.feature.history.api.navigation.HistoryDetailRoute
-import io.github.slavikjunior.syncclip.feature.history.api.navigation.HistoryRoute
-import io.github.slavikjunior.syncclip.feature.history.impl.historyDetailNavEntry
-import io.github.slavikjunior.syncclip.feature.history.impl.historyListNavEntry
+import io.github.slavikjunior.syncclip.feature.history.impl.historyNavEntry
 import io.github.slavikjunior.syncclip.feature.settings.impl.settingsNavEntry
 import io.github.slavikjunior.syncclip.feature.sync.api.E2eeKeyProvisioner
 import io.github.slavikjunior.syncclip.feature.sync.impl.syncNavEntry
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
+import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.koinInject
 
 /**
@@ -61,6 +67,7 @@ import org.koin.compose.koinInject
  * показывается прогресс; `SignedOut` открывает Firebase-форму входа;
  * `SignedIn` — основной каркас приложения.
  */
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 public fun SyncClipApp() {
     var theme by remember { mutableStateOf(ThemeState()) }
@@ -172,9 +179,9 @@ public fun SyncClipApp() {
                     CircularProgressIndicator()
                 }
 
-                SessionState.SignedOut -> authNavEntry(
+                SessionState.SignedOut -> AuthFlow(
                     onAuthenticated = { scope.launch { sessionStore.refresh() } },
-                )()
+                )
 
                 is SessionState.SignedIn -> when {
                     // Keystore/Keychain читается асинхронно — не мигаем формой пароля.
@@ -212,6 +219,7 @@ public fun SyncClipApp() {
     }
 }
 
+@OptIn(ExperimentalMaterial3AdaptiveApi::class)
 @Composable
 private fun AppLayout(
     theme: ThemeState,
@@ -221,98 +229,84 @@ private fun AppLayout(
     onFontScaleChange: (FontScale) -> Unit,
     sectionRequests: AppSectionRequests,
 ) {
-    val navigator = remember { AppNavigator(HistoryRoute) }
-    var section by remember { mutableStateOf(AppSection.HISTORY) }
+    // Стек — единственный источник правды о текущем экране (INV-18), а у
+    // каждого верхнеуровневого раздела он свой (рецепт Nav3 «multiple back
+    // stacks»): переключение вкладки не сбрасывает историю раздела, возврат
+    // показывает его на прежнем экране. `rememberNavBackStack` восстанавливает
+    // все три стека после смерти процесса на всех платформах.
+    var sectionName by rememberSaveable { mutableStateOf(AppSection.HISTORY.name) }
+    val section = AppSection.valueOf(sectionName)
+
+    val historyStack = rememberNavBackStack(AppNavSavedState, AppSection.HISTORY.rootRoute())
+    val syncStack = rememberNavBackStack(AppNavSavedState, AppSection.SYNC.rootRoute())
+    val settingsStack = rememberNavBackStack(AppNavSavedState, AppSection.SETTINGS.rootRoute())
+    val backStack = when (section) {
+        AppSection.HISTORY -> historyStack
+        AppSection.SYNC -> syncStack
+        AppSection.SETTINGS -> settingsStack
+    }
 
     // Трей/хоткей просят открыть историю, не зная о навигации.
     LaunchedEffect(sectionRequests) {
         sectionRequests.history.collect {
-            section = AppSection.HISTORY
-            navigator.reset(HistoryRoute)
+            sectionName = AppSection.HISTORY.name
+            historyStack.resetTo(AppSection.HISTORY.rootRoute())
         }
     }
 
-    PlatformBackHandler(enabled = section == AppSection.HISTORY && navigator.canGoBack) {
-        navigator.pop()
-    }
-
-    val onSelect: (AppSection) -> Unit = { selected ->
-        section = selected
-        navigator.reset(HistoryRoute)
-    }
-
-    val compact = currentWindowAdaptiveInfo().windowSizeClass.windowWidthSizeClass ==
-        WindowWidthSizeClass.COMPACT
-
-    if (compact) {
-        Scaffold(
-            contentWindowInsets = WindowInsets(0, 0, 0, 0),
-            bottomBar = { AppNavigationBar(selected = section, onSelect = onSelect) },
-        ) { padding ->
-            AppDestination(
-                section = section,
-                navigator = navigator,
-                theme = theme,
-                fontScale = fontScale,
-                onThemeChange = onThemeChange,
-                onRegenerateRandomTheme = onRegenerateRandomTheme,
-                onFontScaleChange = onFontScaleChange,
-                modifier = Modifier.padding(padding),
+    // Панель/rail выбирает сам каркас по ширине окна (адаптивный шаг 2).
+    SyncClipNavigationScaffold(
+        items = AppSection.entries.map { entry ->
+            SyncClipNavigationItem(
+                icon = entry.icon,
+                label = stringResource(entry.label),
             )
-        }
-    } else {
-        Row(modifier = Modifier.fillMaxSize()) {
-            AppNavigationRail(selected = section, onSelect = onSelect)
-            AppDestination(
-                section = section,
-                navigator = navigator,
-                theme = theme,
-                fontScale = fontScale,
-                onThemeChange = onThemeChange,
-                onRegenerateRandomTheme = onRegenerateRandomTheme,
-                onFontScaleChange = onFontScaleChange,
-                modifier = Modifier.weight(1f),
-            )
-        }
+        },
+        selectedIndex = AppSection.entries.indexOf(section),
+        // Стеки не сбрасываются: повторный выбор раздела возвращает его
+        // последний экран (F5 аудита Nav3).
+        onSelect = { index -> sectionName = AppSection.entries[index].name },
+    ) { padding ->
+        // Адаптивный шаг 3: list-detail раскладывает сцена Nav3, а не экран.
+        // На COMPACT она отдаёт стек обычному NavDisplay (деталь — отдельный
+        // экран), на MEDIUM/EXPANDED показывает список и деталь двумя панелями
+        // и сама снимает detail-запись со стека при возврате.
+        val listDetailStrategy = rememberListDetailSceneStrategy<NavKey>()
+        NavDisplay(
+            backStack = backStack,
+            modifier = Modifier.padding(padding),
+            // На Android системный back обрабатывает сам NavDisplay
+            // (включая predictive back); на корне он отдаёт событие платформе.
+            onBack = { backStack.removeLastOrNull() },
+            sceneStrategies = listOf(listDetailStrategy),
+            entryProvider = entryProvider<NavKey> {
+                historyNavEntry(
+                    // push вместо add: повторный тап/двойной клик не создаёт
+                    // второй экземпляр того же маршрута (F14 аудита Nav3).
+                    onOpenDetail = { eventId -> historyStack.push(HistoryDetailRoute(eventId)) },
+                    onBack = { historyStack.removeLastOrNull() },
+                )
+                syncNavEntry()
+                settingsNavEntry(
+                    theme = theme,
+                    fontScale = fontScale,
+                    onThemeChange = onThemeChange,
+                    onRegenerateRandomTheme = onRegenerateRandomTheme,
+                    onFontScaleChange = onFontScaleChange,
+                )
+            },
+        )
     }
 }
 
+/** Вход — тоже маршрут Nav3: один экран, но стеком владеет NavDisplay. */
 @Composable
-private fun AppDestination(
-    section: AppSection,
-    navigator: AppNavigator,
-    theme: ThemeState,
-    fontScale: FontScale,
-    onThemeChange: (ThemeState) -> Unit,
-    onRegenerateRandomTheme: () -> Unit,
-    onFontScaleChange: (FontScale) -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Box(modifier = modifier.fillMaxSize()) {
-        when (section) {
-            AppSection.HISTORY -> {
-                val route = navigator.current
-                if (route is HistoryDetailRoute) {
-                    historyDetailNavEntry(
-                        route = route,
-                        onBack = { navigator.pop() },
-                    )()
-                } else {
-                    historyListNavEntry(
-                        onOpenDetail = { eventId -> navigator.push(HistoryDetailRoute(eventId)) },
-                    )()
-                }
-            }
-
-            AppSection.SYNC -> syncNavEntry()()
-
-            AppSection.SETTINGS -> settingsNavEntry(
-                theme = theme,
-                fontScale = fontScale,
-                onThemeChange = onThemeChange,
-                onRegenerateRandomTheme = onRegenerateRandomTheme,
-                onFontScaleChange = onFontScaleChange,
-            )()
-        }
-    }
+private fun AuthFlow(onAuthenticated: () -> Unit) {
+    val backStack = rememberNavBackStack(AppNavSavedState, AuthRoute)
+    NavDisplay(
+        backStack = backStack,
+        entryProvider = entryProvider<NavKey> {
+            authNavEntry(onAuthenticated = onAuthenticated)
+        },
+    )
 }
