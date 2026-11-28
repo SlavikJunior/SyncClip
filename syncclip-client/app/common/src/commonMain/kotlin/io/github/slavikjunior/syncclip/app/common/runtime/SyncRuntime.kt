@@ -5,11 +5,15 @@ import io.github.slavikjunior.syncclip.core.datastore.SessionStore
 import io.github.slavikjunior.syncclip.feature.sync.api.ClipboardCaptureStarter
 import io.github.slavikjunior.syncclip.feature.sync.api.LanTransportStarter
 import io.github.slavikjunior.syncclip.feature.sync.api.SyncTransportStarter
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.supervisorScope
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.supervisorScope
 
 /**
  * Фоновое ядро приложения: захват, LAN и WAN живут вне Compose.
@@ -27,6 +31,7 @@ public class SyncRuntime(
     private val capture: ClipboardCaptureStarter,
     private val lan: LanTransportStarter,
     private val transport: SyncTransportStarter,
+    private val restartDelayMillis: Long = DEFAULT_RESTART_DELAY_MILLIS,
 ) {
 
     private var job: Job? = null
@@ -43,12 +48,39 @@ public class SyncRuntime(
                     // supervisorScope: падение LAN (mDNS занят/нет сети) не должно
                     // останавливать захват и WAN.
                     supervisorScope {
-                        launch { capture.run() }
-                        launch { lan.run() }
-                        launch { transport.run() }
+                        launch { supervise { capture.run() } }
+                        launch { supervise { lan.run() } }
+                        launch { supervise { transport.run() } }
                     }
                 }
             }
         }
+    }
+
+    /**
+     * Перезапускает упавший конвейер, пока жива сессия.
+     *
+     * Без этого одно необработанное исключение (нет места на диске, сбой
+     * платформенного API) выключало бы, например, захват буфера до повторного
+     * входа в аккаунт — с точки зрения пользователя приложение «умирало».
+     *
+     * Штатное завершение (`return`) не перезапускается: так `SyncTransport`
+     * останавливается после `SESSION_REVOKED`.
+     */
+    private suspend fun supervise(block: suspend () -> Unit) {
+        while (currentCoroutineContext().isActive) {
+            try {
+                block()
+                return
+            } catch (cancel: CancellationException) {
+                throw cancel
+            } catch (_: Exception) {
+                delay(restartDelayMillis)
+            }
+        }
+    }
+
+    private companion object {
+        const val DEFAULT_RESTART_DELAY_MILLIS = 5_000L
     }
 }
