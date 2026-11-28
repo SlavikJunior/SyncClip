@@ -23,6 +23,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
+import java.awt.Dimension
 import io.github.slavikjunior.syncclip.app.common.ui.TrayLabels
 import io.github.slavikjunior.syncclip.app.desktop.documents.DesktopDocumentGateway
 import io.github.slavikjunior.syncclip.app.desktop.theme.SyncClipTrayIcon
@@ -112,7 +113,16 @@ fun main() {
             state = windowState,
             title = "SyncClip",
         ) {
+            // US-003: минимальный размер окна 800×600 — ниже него ломается
+            // адаптивная раскладка (rail + контент).
+            LaunchedEffect(window) {
+                window.minimumSize = Dimension(MIN_WINDOW_WIDTH_PX, MIN_WINDOW_HEIGHT_PX)
+            }
             SyncClipApp()
         }
     }
 }
+
+/** Минимальный размер окна Desktop (US-003): 800×600 dp при плотности 1.0. */
+private const val MIN_WINDOW_WIDTH_PX = 800
+private const val MIN_WINDOW_HEIGHT_PX = 600

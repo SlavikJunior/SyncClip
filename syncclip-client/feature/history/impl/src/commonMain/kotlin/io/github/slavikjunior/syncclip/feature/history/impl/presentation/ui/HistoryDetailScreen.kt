@@ -5,6 +5,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
+import io.github.slavikjunior.syncclip.core.designsystem.adaptive.isWideWindow
 import io.github.slavikjunior.syncclip.feature.history.impl.presentation.state.HistoryDetailEffect
 import io.github.slavikjunior.syncclip.feature.history.impl.presentation.state.HistoryDetailIntent
 import io.github.slavikjunior.syncclip.feature.history.impl.presentation.state.HistoryDetailViewModel
@@ -35,5 +37,8 @@ internal fun HistoryDetailScreen(
         state = state,
         onIntent = viewModel::handleIntent,
         onBack = onBack,
+        // В двухпанельном режиме деталь — правая панель списка: back-стрелка
+        // там не нужна, выход из сцены делает жест/системная кнопка.
+        showBackArrow = !currentWindowAdaptiveInfoV2().windowSizeClass.isWideWindow(),
     )
 }

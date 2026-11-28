@@ -8,15 +8,17 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.unit.dp
 import io.github.slavikjunior.syncclip.core.designsystem.component.EmptyState
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIcon
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIconKind
+import io.github.slavikjunior.syncclip.core.designsystem.preview.FormFactorPreviews
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipTheme
 import io.github.slavikjunior.syncclip.feature.history.impl.domain.model.HistoryEntryType
 import io.github.slavikjunior.syncclip.feature.history.impl.presentation.state.HistoryDetailIntent
@@ -38,22 +40,30 @@ internal fun HistoryDetailContent(
     modifier: Modifier = Modifier,
     onBack: () -> Unit = {},
     nowMillis: Long = Clock.System.now().toEpochMilliseconds(),
+    showBackArrow: Boolean = true,
 ) {
+    // Адаптивный шаг 5: app bar уезжает при скролле вниз и возвращается при
+    // скролле вверх — на узком экране деталь читается на всю высоту.
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior()
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
         topBar = {
             TopAppBar(
                 title = { Text(text = stringResource(Res.string.history_detail_title)) },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        SyncClipIcon(
-                            kind = SyncClipIconKind.CHEVRON_RIGHT,
-                            contentDescription = stringResource(Res.string.history_back),
-                            modifier = Modifier.rotate(180f),
-                            size = 22.dp,
-                        )
+                    // В list-detail (широкое окно) деталь — панель, а не экран.
+                    if (showBackArrow) {
+                        IconButton(onClick = onBack) {
+                            SyncClipIcon(
+                                kind = SyncClipIconKind.CHEVRON_RIGHT,
+                                contentDescription = stringResource(Res.string.history_back),
+                                modifier = Modifier.rotate(180f),
+                                size = 22.dp,
+                            )
+                        }
                     }
                 },
+                scrollBehavior = scrollBehavior,
             )
         },
     ) { padding ->
@@ -85,7 +95,7 @@ internal fun HistoryDetailContent(
     }
 }
 
-@Preview
+@FormFactorPreviews
 @Composable
 private fun HistoryDetailContentPreview() {
     SyncClipTheme {

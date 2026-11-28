@@ -9,15 +9,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.grid.GridCells
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.CircularProgressIndicator
@@ -34,21 +36,21 @@ import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.VerticalDivider
+import androidx.compose.material3.adaptive.currentWindowAdaptiveInfoV2
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import io.github.slavikjunior.syncclip.core.designsystem.adaptive.isWideWindow
 import io.github.slavikjunior.syncclip.core.designsystem.component.ClipboardCard
 import io.github.slavikjunior.syncclip.core.designsystem.component.EmptyState
 import io.github.slavikjunior.syncclip.core.designsystem.component.SearchField
 import io.github.slavikjunior.syncclip.core.designsystem.component.SectionHeader
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIcon
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIconKind
+import io.github.slavikjunior.syncclip.core.designsystem.preview.FormFactorPreviews
 import io.github.slavikjunior.syncclip.core.designsystem.theme.LocalSyncClipColors
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipSpacing
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipTheme
@@ -79,33 +81,32 @@ import syncclip.feature.history.impl.generated.resources.history_search_empty
 import syncclip.feature.history.impl.generated.resources.history_search_empty_title
 import syncclip.feature.history.impl.generated.resources.history_search_placeholder
 import syncclip.feature.history.impl.generated.resources.history_search_shortcut
-import syncclip.feature.history.impl.generated.resources.history_select_entry
-import syncclip.feature.history.impl.generated.resources.history_select_entry_hint
 import syncclip.feature.history.impl.generated.resources.history_subtitle
 import syncclip.feature.history.impl.generated.resources.history_title
 import syncclip.feature.history.impl.generated.resources.history_unpin
 import syncclip.feature.history.impl.generated.resources.history_unpin_swipe
 import kotlin.time.Clock
 
+/** Минимальная ширина карточки в адаптивной сетке истории (адаптивный шаг 4). */
+private val HistoryCardMinWidth = 300.dp
+
+/** Сколько skeleton-карточек показывать в первой загрузке. */
+private const val SKELETON_CARD_COUNT = 3
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun HistoryContent(
     state: HistoryUiState,
     onIntent: (HistoryIntent) -> Unit,
-    useTwoPane: Boolean,
     modifier: Modifier = Modifier,
     snackbarHostState: SnackbarHostState? = null,
     nowMillis: Long = Clock.System.now().toEpochMilliseconds(),
 ) {
-    LaunchedEffect(useTwoPane, state.entries, state.selectedEntryId) {
-        if (useTwoPane && state.entries.none { entry -> entry.id == state.selectedEntryId }) {
-            state.entries.firstOrNull()?.let { entry ->
-                onIntent(HistoryIntent.Select(entry.id, navigate = false))
-            }
-        }
-    }
     Scaffold(
         modifier = modifier,
+        // Верхний инсет применяют панели (statusBarsPadding), нижний — каркас
+        // навигации: systemBars из Scaffold удвоили бы статус-бар.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { snackbarHostState?.let { SnackbarHost(it) } },
         floatingActionButton = {
             // US-016: отправка текущего буфера на выбранные устройства.
@@ -123,55 +124,12 @@ internal fun HistoryContent(
             }
         },
     ) { padding ->
-        Row(modifier = Modifier.padding(padding).fillMaxSize()) {
-            if (useTwoPane) {
-                HistoryListPane(
-                    modifier = Modifier.weight(0.42f),
-                    state = state,
-                    onIntent = onIntent,
-                    showShortcut = true,
-                    twoPane = true,
-                    nowMillis = nowMillis,
-                )
-                VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                val selected = state.entries.firstOrNull { entry ->
-                    entry.id == state.selectedEntryId
-                }
-                if (selected != null) {
-                    HistoryEntryPaneContent(
-                        modifier = Modifier.weight(0.58f).statusBarsPadding(),
-                        entry = selected,
-                        nowMillis = nowMillis,
-                        onPinClick = { onIntent(HistoryIntent.TogglePin(selected.id)) },
-                        onDeleteClick = if (selected.isPinned) {
-                            null
-                        } else {
-                            { onIntent(HistoryIntent.Delete(selected.id)) }
-                        },
-                    )
-                } else {
-                    Box(
-                        modifier = Modifier.weight(0.58f).fillMaxHeight().statusBarsPadding(),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        EmptyState(
-                            title = stringResource(Res.string.history_select_entry),
-                            message = stringResource(Res.string.history_select_entry_hint),
-                            icon = SyncClipIconKind.HISTORY,
-                        )
-                    }
-                }
-            } else {
-                HistoryListPane(
-                    modifier = Modifier.fillMaxSize(),
-                    state = state,
-                    onIntent = onIntent,
-                    showShortcut = false,
-                    twoPane = false,
-                    nowMillis = nowMillis,
-                )
-            }
-        }
+        HistoryListPane(
+            modifier = Modifier.padding(padding).fillMaxSize(),
+            state = state,
+            onIntent = onIntent,
+            nowMillis = nowMillis,
+        )
     }
     if (state.sendDialog != null) {
         HistorySendDialog(state = state.sendDialog, onIntent = onIntent)
@@ -183,8 +141,6 @@ private fun HistoryListPane(
     modifier: Modifier,
     state: HistoryUiState,
     onIntent: (HistoryIntent) -> Unit,
-    showShortcut: Boolean,
-    twoPane: Boolean,
     nowMillis: Long,
 ) {
     Column(
@@ -201,7 +157,9 @@ private fun HistoryListPane(
             placeholder = stringResource(Res.string.history_search_placeholder),
             onClear = { onIntent(HistoryIntent.ClearQuery) },
             clearContentDescription = stringResource(Res.string.history_search_clear),
-            shortcutHint = if (showShortcut) {
+            // Подсказка хоткея нужна на Desktop; на панели list-detail она
+            // дублировалась бы, поэтому показываем только на широком окне.
+            shortcutHint = if (currentWindowAdaptiveInfoV2().windowSizeClass.isWideWindow()) {
                 stringResource(Res.string.history_search_shortcut)
             } else {
                 null
@@ -227,7 +185,6 @@ private fun HistoryListPane(
             modifier = Modifier.weight(1f),
             state = state,
             onIntent = onIntent,
-            twoPane = twoPane,
             nowMillis = nowMillis,
         )
     }
@@ -345,7 +302,6 @@ private fun HistoryList(
     modifier: Modifier,
     state: HistoryUiState,
     onIntent: (HistoryIntent) -> Unit,
-    twoPane: Boolean,
     nowMillis: Long,
 ) {
     when {
@@ -382,9 +338,14 @@ private fun HistoryList(
         }
 
         else -> {
-            LazyColumn(
+            // Адаптивный шаг 4: на широких окнах карточки идут в несколько
+            // колонок; в COMPACT и в узкой левой панели двухпанельного режима
+            // остаётся одна колонка.
+            LazyVerticalGrid(
+                columns = GridCells.Adaptive(minSize = HistoryCardMinWidth),
                 modifier = modifier.fillMaxSize(),
                 contentPadding = PaddingValues(bottom = SyncClipSpacing.lg),
+                horizontalArrangement = Arrangement.spacedBy(SyncClipSpacing.sm),
                 verticalArrangement = Arrangement.spacedBy(SyncClipSpacing.sm),
             ) {
                 items(
@@ -395,14 +356,18 @@ private fun HistoryList(
                     HistoryEntryRow(
                         entry = entry,
                         query = state.query,
-                        isSelected = twoPane && entry.id == state.selectedEntryId,
-                        navigateOnSelect = !twoPane,
+                        // Выбранная запись — та, что сейчас открыта в детали.
+                        isSelected = entry.id == state.selectedEntryId,
                         nowMillis = nowMillis,
                         onIntent = onIntent,
                     )
                 }
                 if (state.isLoadingMore) {
-                    item(key = "loading_more", contentType = "progress") {
+                    item(
+                        key = "loading_more",
+                        contentType = "progress",
+                        span = { GridItemSpan(maxLineSpan) },
+                    ) {
                         Box(
                             modifier = Modifier.fillMaxWidth().padding(SyncClipSpacing.md),
                             contentAlignment = Alignment.Center,
@@ -412,7 +377,11 @@ private fun HistoryList(
                     }
                 }
                 if (state.hasMore) {
-                    item(key = "load_more", contentType = "action") {
+                    item(
+                        key = "load_more",
+                        contentType = "action",
+                        span = { GridItemSpan(maxLineSpan) },
+                    ) {
                         TextButton(
                             onClick = { onIntent(HistoryIntent.LoadNextPage) },
                             enabled = !state.isLoadingMore,
@@ -433,7 +402,6 @@ private fun HistoryEntryRow(
     entry: HistoryEntryUi,
     query: String,
     isSelected: Boolean,
-    navigateOnSelect: Boolean,
     nowMillis: Long,
     onIntent: (HistoryIntent) -> Unit,
 ) {
@@ -519,9 +487,9 @@ private fun HistoryEntryRow(
                 isPinned = entry.isPinned,
                 isFavorite = entry.isFavorite,
                 isSelected = isSelected,
-                onClick = {
-                    onIntent(HistoryIntent.Select(entry.id, navigate = navigateOnSelect))
-                },
+                // Клик всегда открывает деталь: на широком окне её показывает
+                // detail-pane той же сцены, на узком — отдельный экран.
+                onClick = { onIntent(HistoryIntent.Select(entry.id, navigate = true)) },
                 // US-020: двойной тап копирует текст в системный буфер.
                 onDoubleClick = { onIntent(HistoryIntent.CopyToClipboard(entry.id)) },
                 onPinClick = { onIntent(HistoryIntent.TogglePin(entry.id)) },
@@ -548,52 +516,59 @@ private fun HistoryEntryRow(
 
 @Composable
 private fun HistorySkeletonList(modifier: Modifier) {
-    Column(
+    LazyVerticalGrid(
+        columns = GridCells.Adaptive(minSize = HistoryCardMinWidth),
         modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(SyncClipSpacing.sm),
         verticalArrangement = Arrangement.spacedBy(SyncClipSpacing.sm),
     ) {
-        repeat(3) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                color = MaterialTheme.colorScheme.surface,
-                border = BorderStroke(
-                    1.dp,
-                    MaterialTheme.colorScheme.outlineVariant,
-                ),
-            ) {
-                Column(
-                    modifier = Modifier.padding(SyncClipSpacing.lg),
-                    verticalArrangement = Arrangement.spacedBy(SyncClipSpacing.sm),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.35f)
-                            .height(12.dp)
-                            .clip(MaterialTheme.shapes.extraSmall)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(16.dp)
-                            .clip(MaterialTheme.shapes.extraSmall)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                    )
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(0.7f)
-                            .height(16.dp)
-                            .clip(MaterialTheme.shapes.extraSmall)
-                            .background(MaterialTheme.colorScheme.surfaceVariant),
-                    )
-                }
-            }
+        items(count = SKELETON_CARD_COUNT, contentType = { "skeleton" }) {
+            HistorySkeletonCard()
         }
     }
 }
 
-@Preview
+@Composable
+private fun HistorySkeletonCard() {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(
+            1.dp,
+            MaterialTheme.colorScheme.outlineVariant,
+        ),
+    ) {
+        Column(
+            modifier = Modifier.padding(SyncClipSpacing.lg),
+            verticalArrangement = Arrangement.spacedBy(SyncClipSpacing.sm),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.35f)
+                    .height(12.dp)
+                    .clip(MaterialTheme.shapes.extraSmall)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(16.dp)
+                    .clip(MaterialTheme.shapes.extraSmall)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            )
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth(0.7f)
+                    .height(16.dp)
+                    .clip(MaterialTheme.shapes.extraSmall)
+                    .background(MaterialTheme.colorScheme.surfaceVariant),
+            )
+        }
+    }
+}
+
+@FormFactorPreviews
 @Composable
 private fun HistoryContentPreview() {
     val now = Clock.System.now().toEpochMilliseconds()
@@ -625,7 +600,6 @@ private fun HistoryContentPreview() {
                 totalCount = 10,
             ),
             onIntent = {},
-            useTwoPane = false,
         )
     }
 }

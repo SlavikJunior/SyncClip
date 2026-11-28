@@ -9,6 +9,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.ExperimentalGridApi
+import androidx.compose.foundation.layout.Grid
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -22,6 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIcon
@@ -145,15 +148,33 @@ private fun ThemeModeLabel(mode: ThemeMode): String = when (mode) {
     ThemeMode.DARK -> stringResource(Res.string.settings_mode_dark)
 }
 
+/**
+ * Палитры в `Grid` (адаптивный шаг 4.2): число колонок зависит от доступной
+ * ширины, поэтому на телефоне плитки не сжимаются в неразборчивую строку, а на
+ * широком окне не растягиваются на всю ширину.
+ */
+@OptIn(ExperimentalGridApi::class)
 @Composable
 private fun ThemePresetPicker(
     theme: ThemeState,
     onPresetChange: (ThemePreset) -> Unit,
 ) {
     val scheme = MaterialTheme.colorScheme
-    Row(
+    Grid(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        config = {
+            val width = constraints.maxWidth.toDp()
+            val gapSize = SyncClipSpacing.sm
+            val count = ThemePreset.entries.size
+            val columns = ((width + gapSize) / (PresetCellMinWidth + gapSize))
+                .toInt()
+                .coerceIn(1, count)
+            val rows = (count + columns - 1) / columns
+            val cellWidth = ((width - gapSize * (columns - 1)) / columns).coerceAtLeast(0.dp)
+            repeat(columns) { column(cellWidth) }
+            repeat(rows) { row(PresetCellHeight) }
+            gap(gapSize)
+        },
     ) {
         ThemePreset.entries.forEach { entry ->
             val selected = entry == theme.preset
@@ -164,7 +185,7 @@ private fun ThemePresetPicker(
             }
             Column(
                 modifier = Modifier
-                    .weight(1f)
+                    .fillMaxWidth()
                     .clip(MaterialTheme.shapes.medium)
                     .clickable { onPresetChange(entry) }
                     .padding(vertical = 4.dp),
@@ -206,12 +227,20 @@ private fun ThemePresetPicker(
                     text = ThemePresetLabel(entry),
                     style = MaterialTheme.typography.labelSmall,
                     color = if (selected) scheme.primary else scheme.onSurfaceVariant,
-                    maxLines = 1,
+                    // Две строки: «Динамическая» не влезает в узкую плитку.
+                    maxLines = 2,
+                    textAlign = TextAlign.Center,
                 )
             }
         }
     }
 }
+
+/** Минимальная ширина плитки палитры: кружок 34 dp + подпись целиком. */
+private val PresetCellMinWidth = 88.dp
+
+/** Высота плитки: кружок, до двух строк подписи и вертикальные отступы. */
+private val PresetCellHeight = 76.dp
 
 @Composable
 private fun ThemePresetLabel(preset: ThemePreset): String = when (preset) {

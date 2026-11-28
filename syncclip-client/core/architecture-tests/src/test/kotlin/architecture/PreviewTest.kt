@@ -6,6 +6,11 @@ import org.junit.Test
 /**
  * INV-28 — у каждого `*Content` есть `@Preview`.
  *
+ * Превью может быть объявлено напрямую (`@Preview`) или проектной
+ * мульти-аннотацией `@FormFactorPreviews` (телефон/складной/планшет/десктоп) —
+ * она сама помечена `@Preview`, но Konsist проверяет имена аннотаций без
+ * разыменования, поэтому имя добавлено в список явно.
+ *
  * Проверка ищет по имени функции, а не по пути: раскладка пакетов может быть
  * не приведена к стандарту (или приведена частично), и тогда фильтр по
  * `/presentation/` молча не находит ни одного экрана. Отсутствие раскладки —
@@ -35,11 +40,18 @@ class PreviewTest {
                 .filter { name -> name.endsWith("Content") }
 
             val previewBodies = functions
-                .filter { function -> function.hasAnnotation("Preview") }
+                .filter { function ->
+                    PreviewAnnotations.any { annotation -> function.hasAnnotation(annotation) }
+                }
                 .map { it.text }
 
             contentNames.all { name -> previewBodies.any { body -> body.contains("$name(") } }
         }
+    }
+
+    private companion object {
+        /** Имена аннотаций превью: прямая и проектная мульти-форм-факторная. */
+        val PreviewAnnotations = listOf("Preview", "FormFactorPreviews")
     }
 }
 

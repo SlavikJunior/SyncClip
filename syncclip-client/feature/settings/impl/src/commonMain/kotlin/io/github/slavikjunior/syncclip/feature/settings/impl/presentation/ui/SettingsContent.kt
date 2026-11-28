@@ -10,12 +10,16 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -40,7 +44,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.slavikjunior.syncclip.core.designsystem.component.DeviceRow
 import io.github.slavikjunior.syncclip.core.designsystem.component.EmptyState
@@ -49,6 +52,7 @@ import io.github.slavikjunior.syncclip.core.designsystem.component.SettingsRow
 import io.github.slavikjunior.syncclip.core.designsystem.component.StatusPillState
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIcon
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIconKind
+import io.github.slavikjunior.syncclip.core.designsystem.preview.FormFactorPreviews
 import io.github.slavikjunior.syncclip.core.designsystem.theme.FontScale
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipSpacing
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipTheme
@@ -116,153 +120,242 @@ internal fun SettingsContent(
     val scheme = MaterialTheme.colorScheme
     Scaffold(
         modifier = modifier,
+        // Верхний инсет применяет контент (statusBarsPadding), нижний — каркас
+        // навигации: иначе статус-бар считался бы дважды (Scaffold отдаёт
+        // systemBars через PaddingValues и не потребляет их).
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
         snackbarHost = { snackbarHostState?.let { SnackbarHost(it) } },
     ) { padding ->
-        Column(
+        Box(
             modifier = Modifier
                 .padding(padding)
-                .fillMaxSize()
-                .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = SyncClipSpacing.screen),
-            verticalArrangement = Arrangement.spacedBy(SyncClipSpacing.lg),
+                .fillMaxSize(),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            Spacer(modifier = Modifier.height(SyncClipSpacing.xs))
-            Column {
-                Text(
-                    text = stringResource(Res.string.settings_title),
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = scheme.onBackground,
+            Column(
+                modifier = Modifier
+                    // На широком окне секции не растягиваются на всю ширину:
+                    // строки длиннее 840 dp нечитаемы (адаптивный шаг 4).
+                    .widthIn(max = SyncClipSpacing.contentMaxWidth)
+                    .fillMaxHeight()
+                    .statusBarsPadding()
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = SyncClipSpacing.screen),
+                verticalArrangement = Arrangement.spacedBy(SyncClipSpacing.lg),
+            ) {
+                Spacer(modifier = Modifier.height(SyncClipSpacing.xs))
+                Column {
+                    Text(
+                        text = stringResource(Res.string.settings_title),
+                        style = MaterialTheme.typography.headlineMedium,
+                        color = scheme.onBackground,
+                    )
+                    Text(
+                        text = stringResource(Res.string.settings_subtitle),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = scheme.onSurfaceVariant,
+                    )
+                }
+
+                SectionHeader(title = stringResource(Res.string.settings_appearance))
+                SettingsAppearanceSection(
+                    theme = theme,
+                    fontScale = fontScale,
+                    onThemeChange = onThemeChange,
+                    onRegenerateRandomTheme = onRegenerateRandomTheme,
+                    onFontScaleChange = onFontScaleChange,
+                )
+
+                SectionHeader(title = stringResource(Res.string.settings_notifications))
+                SettingsNotificationsSection(
+                    notifications = state.notifications,
+                    onIntent = onIntent,
+                )
+
+                SectionHeader(title = stringResource(Res.string.settings_privacy))
+                SettingsPrivacySection(
+                    autoClearSensitive = state.autoClearSensitive,
+                    onIntent = onIntent,
+                )
+
+                SectionHeader(title = stringResource(Res.string.settings_security))
+                SettingsSecuritySection(
+                    biometricAvailable = state.biometricAvailable,
+                    biometricLock = state.biometricLock,
+                    timeoutMinutes = state.biometricTimeoutMinutes,
+                    onIntent = onIntent,
+                )
+
+                SectionHeader(
+                    title = stringResource(Res.string.settings_devices),
+                    trailing = stringResource(Res.string.settings_devices_count, state.devices.size),
                 )
                 Text(
-                    text = stringResource(Res.string.settings_subtitle),
+                    text = stringResource(Res.string.settings_devices_hint),
                     style = MaterialTheme.typography.bodySmall,
                     color = scheme.onSurfaceVariant,
                 )
-            }
 
-            SectionHeader(title = stringResource(Res.string.settings_appearance))
-            SettingsAppearanceSection(
-                theme = theme,
-                fontScale = fontScale,
-                onThemeChange = onThemeChange,
-                onRegenerateRandomTheme = onRegenerateRandomTheme,
-                onFontScaleChange = onFontScaleChange,
-            )
-
-            SectionHeader(title = stringResource(Res.string.settings_notifications))
-            SettingsNotificationsSection(
-                notifications = state.notifications,
-                onIntent = onIntent,
-            )
-
-            SectionHeader(title = stringResource(Res.string.settings_privacy))
-            SettingsPrivacySection(
-                autoClearSensitive = state.autoClearSensitive,
-                onIntent = onIntent,
-            )
-
-            SectionHeader(title = stringResource(Res.string.settings_security))
-            SettingsSecuritySection(
-                biometricAvailable = state.biometricAvailable,
-                biometricLock = state.biometricLock,
-                timeoutMinutes = state.biometricTimeoutMinutes,
-                onIntent = onIntent,
-            )
-
-            SectionHeader(
-                title = stringResource(Res.string.settings_devices),
-                trailing = stringResource(Res.string.settings_devices_count, state.devices.size),
-            )
-            Text(
-                text = stringResource(Res.string.settings_devices_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = scheme.onSurfaceVariant,
-            )
-
-            if (state.pendingCount > 0) {
-                Surface(
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = MaterialTheme.shapes.large,
-                    color = scheme.surface,
-                    border = BorderStroke(1.dp, scheme.outlineVariant),
-                ) {
-                    SettingsRow(
-                        title = stringResource(Res.string.settings_pending, state.pendingCount),
-                        icon = SyncClipIconKind.ERROR,
-                        trailing = {
-                            TextButton(onClick = { onIntent(DeviceIntent.RetryPending) }) {
-                                Text(text = stringResource(Res.string.settings_retry))
-                            }
-                        },
-                    )
-                }
-            }
-
-            when {
-                state.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxWidth().padding(SyncClipSpacing.lg),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        CircularProgressIndicator()
-                    }
-                }
-
-                state.error != null -> {
-                    Text(
-                        text = stringResource(state.error),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = scheme.error,
-                    )
-                }
-
-                state.devices.isEmpty() -> {
-                    EmptyState(
-                        title = stringResource(Res.string.settings_no_devices),
-                        message = stringResource(Res.string.settings_no_devices_hint),
-                        icon = SyncClipIconKind.DEVICES,
-                    )
-                }
-
-                else -> {
+                if (state.pendingCount > 0) {
                     Surface(
                         modifier = Modifier.fillMaxWidth(),
                         shape = MaterialTheme.shapes.large,
                         color = scheme.surface,
                         border = BorderStroke(1.dp, scheme.outlineVariant),
                     ) {
-                        Column {
-                            state.devices.forEachIndexed { index, device ->
-                                DeviceRow(
-                                    name = device.name,
-                                    subtitle = device.platform,
-                                    icon = device.icon.toSyncClipIcon(),
-                                    statusLabel = if (device.isCurrent) {
-                                        stringResource(Res.string.settings_this_device)
-                                    } else {
-                                        null
-                                    },
-                                    status = if (device.isCurrent) {
-                                        StatusPillState.ONLINE
-                                    } else {
-                                        StatusPillState.NEUTRAL
-                                    },
-                                    onClick = {
-                                        onIntent(DeviceIntent.OpenRename(device.id))
-                                    },
-                                )
-                                if (index < state.devices.lastIndex) {
-                                    HorizontalDivider(color = scheme.outlineVariant)
+                        SettingsRow(
+                            title = stringResource(Res.string.settings_pending, state.pendingCount),
+                            icon = SyncClipIconKind.ERROR,
+                            trailing = {
+                                TextButton(onClick = { onIntent(DeviceIntent.RetryPending) }) {
+                                    Text(text = stringResource(Res.string.settings_retry))
+                                }
+                            },
+                        )
+                    }
+                }
+
+                when {
+                    state.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().padding(SyncClipSpacing.lg),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            CircularProgressIndicator()
+                        }
+                    }
+
+                    state.error != null -> {
+                        Text(
+                            text = stringResource(state.error),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = scheme.error,
+                        )
+                    }
+
+                    state.devices.isEmpty() -> {
+                        EmptyState(
+                            title = stringResource(Res.string.settings_no_devices),
+                            message = stringResource(Res.string.settings_no_devices_hint),
+                            icon = SyncClipIconKind.DEVICES,
+                        )
+                    }
+
+                    else -> {
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = MaterialTheme.shapes.large,
+                            color = scheme.surface,
+                            border = BorderStroke(1.dp, scheme.outlineVariant),
+                        ) {
+                            Column {
+                                state.devices.forEachIndexed { index, device ->
+                                    DeviceRow(
+                                        name = device.name,
+                                        subtitle = device.platform,
+                                        icon = device.icon.toSyncClipIcon(),
+                                        statusLabel = if (device.isCurrent) {
+                                            stringResource(Res.string.settings_this_device)
+                                        } else {
+                                            null
+                                        },
+                                        status = if (device.isCurrent) {
+                                            StatusPillState.ONLINE
+                                        } else {
+                                            StatusPillState.NEUTRAL
+                                        },
+                                        onClick = {
+                                            onIntent(DeviceIntent.OpenRename(device.id))
+                                        },
+                                    )
+                                    if (index < state.devices.lastIndex) {
+                                        HorizontalDivider(color = scheme.outlineVariant)
+                                    }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            if (state.autoStartSupported) {
-                SectionHeader(title = stringResource(Res.string.settings_desktop))
+                if (state.autoStartSupported) {
+                    SectionHeader(title = stringResource(Res.string.settings_desktop))
+                    Surface(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = MaterialTheme.shapes.large,
+                        color = scheme.surface,
+                        border = BorderStroke(1.dp, scheme.outlineVariant),
+                    ) {
+                        SettingsRow(
+                            title = stringResource(Res.string.settings_autostart),
+                            subtitle = stringResource(Res.string.settings_autostart_hint),
+                            icon = SyncClipIconKind.LAPTOP,
+                            trailing = {
+                                Switch(
+                                    checked = state.autoStartEnabled,
+                                    enabled = !state.isAutoStartBusy,
+                                    onCheckedChange = { onIntent(DeviceIntent.ToggleAutoStart) },
+                                )
+                            },
+                        )
+                    }
+                }
+
+                SectionHeader(title = stringResource(Res.string.settings_history))
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = MaterialTheme.shapes.large,
+                    color = scheme.surface,
+                    border = BorderStroke(1.dp, scheme.outlineVariant),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(SyncClipSpacing.md),
+                        verticalArrangement = Arrangement.spacedBy(SyncClipSpacing.sm),
+                    ) {
+                        Text(
+                            text = stringResource(Res.string.settings_history_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = scheme.onSurfaceVariant,
+                        )
+                        HistoryLimitField(
+                            label = stringResource(Res.string.settings_history_entries),
+                            hint = stringResource(Res.string.settings_history_entries_hint),
+                            value = state.maxEntriesInput,
+                            enabled = !state.isLimitsSaving,
+                            onValueChange = { onIntent(DeviceIntent.EntriesChanged(it)) },
+                        )
+                        HistoryLimitField(
+                            label = stringResource(Res.string.settings_history_ttl),
+                            hint = stringResource(Res.string.settings_history_ttl_hint),
+                            value = state.ttlHoursInput,
+                            enabled = !state.isLimitsSaving,
+                            onValueChange = { onIntent(DeviceIntent.TtlHoursChanged(it)) },
+                        )
+                        HistoryLimitField(
+                            label = stringResource(Res.string.settings_history_bytes),
+                            hint = stringResource(Res.string.settings_history_bytes_hint),
+                            value = state.maxBytesMbInput,
+                            enabled = !state.isLimitsSaving,
+                            onValueChange = { onIntent(DeviceIntent.MaxBytesMbChanged(it)) },
+                        )
+                        if (state.limitsError != null) {
+                            Text(
+                                text = stringResource(state.limitsError),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = scheme.error,
+                            )
+                        }
+                        Button(
+                            onClick = { onIntent(DeviceIntent.SaveHistoryLimits) },
+                            enabled = !state.isLimitsSaving,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(text = stringResource(Res.string.settings_history_save))
+                        }
+                    }
+                }
+
+                SectionHeader(title = stringResource(Res.string.settings_storage))
                 Surface(
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
@@ -270,103 +363,28 @@ internal fun SettingsContent(
                     border = BorderStroke(1.dp, scheme.outlineVariant),
                 ) {
                     SettingsRow(
-                        title = stringResource(Res.string.settings_autostart),
-                        subtitle = stringResource(Res.string.settings_autostart_hint),
-                        icon = SyncClipIconKind.LAPTOP,
-                        trailing = {
-                            Switch(
-                                checked = state.autoStartEnabled,
-                                enabled = !state.isAutoStartBusy,
-                                onCheckedChange = { onIntent(DeviceIntent.ToggleAutoStart) },
-                            )
-                        },
+                        title = stringResource(Res.string.settings_storage_local),
+                        subtitle = stringResource(Res.string.settings_storage_limit),
+                        icon = SyncClipIconKind.HISTORY,
                     )
                 }
-            }
 
-            SectionHeader(title = stringResource(Res.string.settings_history))
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                color = scheme.surface,
-                border = BorderStroke(1.dp, scheme.outlineVariant),
-            ) {
-                Column(
-                    modifier = Modifier.padding(SyncClipSpacing.md),
-                    verticalArrangement = Arrangement.spacedBy(SyncClipSpacing.sm),
-                ) {
-                    Text(
-                        text = stringResource(Res.string.settings_history_hint),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = scheme.onSurfaceVariant,
-                    )
-                    HistoryLimitField(
-                        label = stringResource(Res.string.settings_history_entries),
-                        hint = stringResource(Res.string.settings_history_entries_hint),
-                        value = state.maxEntriesInput,
-                        enabled = !state.isLimitsSaving,
-                        onValueChange = { onIntent(DeviceIntent.EntriesChanged(it)) },
-                    )
-                    HistoryLimitField(
-                        label = stringResource(Res.string.settings_history_ttl),
-                        hint = stringResource(Res.string.settings_history_ttl_hint),
-                        value = state.ttlHoursInput,
-                        enabled = !state.isLimitsSaving,
-                        onValueChange = { onIntent(DeviceIntent.TtlHoursChanged(it)) },
-                    )
-                    HistoryLimitField(
-                        label = stringResource(Res.string.settings_history_bytes),
-                        hint = stringResource(Res.string.settings_history_bytes_hint),
-                        value = state.maxBytesMbInput,
-                        enabled = !state.isLimitsSaving,
-                        onValueChange = { onIntent(DeviceIntent.MaxBytesMbChanged(it)) },
-                    )
-                    if (state.limitsError != null) {
-                        Text(
-                            text = stringResource(state.limitsError),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = scheme.error,
-                        )
-                    }
-                    Button(
-                        onClick = { onIntent(DeviceIntent.SaveHistoryLimits) },
-                        enabled = !state.isLimitsSaving,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Text(text = stringResource(Res.string.settings_history_save))
-                    }
-                }
-            }
+                SectionHeader(title = stringResource(Res.string.settings_archive))
+                SettingsArchiveSection(
+                    documentsSupported = state.documentsSupported,
+                    isBusy = state.isArchiveBusy,
+                    exportDialogVisible = state.exportDialogVisible,
+                    onIntent = onIntent,
+                )
 
-            SectionHeader(title = stringResource(Res.string.settings_storage))
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = MaterialTheme.shapes.large,
-                color = scheme.surface,
-                border = BorderStroke(1.dp, scheme.outlineVariant),
-            ) {
-                SettingsRow(
-                    title = stringResource(Res.string.settings_storage_local),
-                    subtitle = stringResource(Res.string.settings_storage_limit),
-                    icon = SyncClipIconKind.HISTORY,
+                Text(
+                    text = stringResource(Res.string.settings_version),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = scheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth(),
                 )
             }
-
-            SectionHeader(title = stringResource(Res.string.settings_archive))
-            SettingsArchiveSection(
-                documentsSupported = state.documentsSupported,
-                isBusy = state.isArchiveBusy,
-                exportDialogVisible = state.exportDialogVisible,
-                onIntent = onIntent,
-            )
-
-            Text(
-                text = stringResource(Res.string.settings_version),
-                style = MaterialTheme.typography.labelSmall,
-                color = scheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth(),
-            )
         }
     }
 
@@ -422,7 +440,7 @@ private fun DeviceKind.toSyncClipIcon(): SyncClipIconKind = when (this) {
     DeviceKind.TV -> SyncClipIconKind.TV
 }
 
-@Preview
+@FormFactorPreviews
 @Composable
 private fun SettingsContentPreview() {
     SyncClipTheme {

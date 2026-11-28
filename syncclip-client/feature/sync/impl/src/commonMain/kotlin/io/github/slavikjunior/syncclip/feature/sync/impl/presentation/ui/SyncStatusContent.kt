@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,6 +15,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -29,7 +32,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.slavikjunior.syncclip.core.designsystem.component.ClipboardCard
 import io.github.slavikjunior.syncclip.core.designsystem.component.DeviceRow
@@ -41,6 +43,7 @@ import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIcon
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIconKind
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncIndicator
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncIndicatorState
+import io.github.slavikjunior.syncclip.core.designsystem.preview.FormFactorPreviews
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipSpacing
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipTheme
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.model.SyncConnectionStatus
@@ -88,26 +91,39 @@ internal fun SyncStatusContent(
 ) {
     LaunchedEffect(Unit) { onIntent(SyncIntent.StartListening) }
 
-    Scaffold(modifier = modifier) { padding ->
-        Column(
+    Scaffold(
+        modifier = modifier,
+        // Верхний инсет — на контенте, нижний — на каркасе навигации:
+        // systemBars из Scaffold иначе удвоили бы статус-бар.
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    ) { padding ->
+        Box(
             modifier = Modifier
                 .padding(padding)
-                .fillMaxSize()
-                .statusBarsPadding()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = SyncClipSpacing.screen),
-            verticalArrangement = Arrangement.spacedBy(SyncClipSpacing.lg),
+                .fillMaxSize(),
+            contentAlignment = Alignment.TopCenter,
         ) {
-            Spacer(modifier = Modifier.height(SyncClipSpacing.xs))
-            SyncHeader()
-            SyncHero(state = state, onIntent = onIntent)
-            SectionHeader(
-                title = stringResource(Res.string.sync_devices),
-                trailing = stringResource(Res.string.sync_devices_count, state.devices.size),
-            )
-            SyncDevices(state = state)
-            SectionHeader(title = stringResource(Res.string.sync_last_transfer))
-            LastTransfer(state = state)
+            Column(
+                modifier = Modifier
+                    // На широком окне секции не растягиваются на всю ширину.
+                    .widthIn(max = SyncClipSpacing.contentMaxWidth)
+                    .fillMaxHeight()
+                    .statusBarsPadding()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = SyncClipSpacing.screen),
+                verticalArrangement = Arrangement.spacedBy(SyncClipSpacing.lg),
+            ) {
+                Spacer(modifier = Modifier.height(SyncClipSpacing.xs))
+                SyncHeader()
+                SyncHero(state = state, onIntent = onIntent)
+                SectionHeader(
+                    title = stringResource(Res.string.sync_devices),
+                    trailing = stringResource(Res.string.sync_devices_count, state.devices.size),
+                )
+                SyncDevices(state = state)
+                SectionHeader(title = stringResource(Res.string.sync_last_transfer))
+                LastTransfer(state = state)
+            }
         }
     }
 }
@@ -397,7 +413,7 @@ private fun pluralIndex(count: Int): Int {
     }
 }
 
-@Preview
+@FormFactorPreviews
 @Composable
 private fun SyncStatusContentPreview() {
     SyncClipTheme {

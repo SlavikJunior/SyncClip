@@ -28,10 +28,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIcon
 import io.github.slavikjunior.syncclip.core.designsystem.component.SyncClipIconKind
+import io.github.slavikjunior.syncclip.core.designsystem.preview.FormFactorPreviews
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipMonoFontFamily
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipSpacing
 import io.github.slavikjunior.syncclip.core.designsystem.theme.SyncClipTheme
@@ -169,7 +169,7 @@ internal fun HistoryEntryPaneContent(
     }
 }
 
-@Preview
+@FormFactorPreviews
 @Composable
 private fun HistoryEntryPaneContentPreview() {
     SyncClipTheme {
