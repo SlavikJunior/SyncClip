@@ -40,7 +40,10 @@ internal class HistoryDetailViewModel(
 
     private fun load() {
         viewModelScope.launch {
-            val entry = repository.findById(eventId)
+            // Сбой чтения (повреждённая БД, нет места) — это «запись не
+            // найдена», а не падение экрана: исключение ушло бы в
+            // viewModelScope и убило приложение.
+            val entry = runCatching { repository.findById(eventId) }.getOrNull()
             val deviceName = deviceDirectory?.deviceName(entry?.sourceDeviceId)
             _state.update { state ->
                 state.copy(
@@ -65,7 +68,9 @@ internal class HistoryDetailViewModel(
         viewModelScope.launch {
             val entry = _state.value.entry ?: return@launch
             if (entry.isPinned) return@launch
-            repository.delete(entry.id)
+            // Удаление не удалось — экран остаётся, запись видна: пользователь
+            // может повторить, и приложение не падает.
+            if (runCatching { repository.delete(entry.id) }.isFailure) return@launch
             _effect.send(HistoryDetailEffect.NavigateBack)
         }
     }
@@ -74,7 +79,7 @@ internal class HistoryDetailViewModel(
         viewModelScope.launch {
             val entry = _state.value.entry ?: return@launch
             val pinned = !entry.isPinned
-            repository.setPinned(entry.id, pinned)
+            if (runCatching { repository.setPinned(entry.id, pinned) }.isFailure) return@launch
             _state.update { it.copy(entry = it.entry?.copy(isPinned = pinned)) }
         }
     }

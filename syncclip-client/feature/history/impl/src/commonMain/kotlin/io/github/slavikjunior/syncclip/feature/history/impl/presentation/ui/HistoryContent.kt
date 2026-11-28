@@ -368,7 +368,7 @@ private fun HistoryList(
                         }
                     }
                 }
-                if (state.entries.size < state.totalCount) {
+                if (state.hasMore) {
                     item(key = "load_more", contentType = "action") {
                         TextButton(
                             onClick = { onIntent(HistoryIntent.LoadNextPage) },

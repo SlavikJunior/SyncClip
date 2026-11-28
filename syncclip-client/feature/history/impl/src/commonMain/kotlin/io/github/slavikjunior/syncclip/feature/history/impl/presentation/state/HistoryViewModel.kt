@@ -15,6 +15,7 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -43,6 +44,14 @@ internal class HistoryViewModel(
     private val _query = MutableStateFlow("")
     private val _filter = MutableStateFlow(HistoryFilter.ALL)
 
+    /**
+     * Сколько строк БД уже прочитано. Пагинация идёт по строкам, а не по
+     * видимым записям: фильтр по типу скрывает часть строк, и offset по
+     * `entries.size` возвращал бы те же страницы снова и снова.
+     */
+    private var consumedRows: Int = 0
+    private var hasMoreRows: Boolean = true
+
     init {
         // Сначала показываем прошлый снимок первого экрана из ОЗУ (NFR < 50 мс),
         // затем Room присылает актуальную страницу и заменяет его.
@@ -55,6 +64,9 @@ internal class HistoryViewModel(
                 .combine(_filter) { query, filter -> query to filter }
                 .flatMapLatest { (query, filter) ->
                     repository.observePage(query, PAGE_SIZE, 0)
+                        // Сбой чтения (повреждённая БД, нет места) не должен
+                        // ни ронять коллектор, ни оставлять скелет на экране.
+                        .catch { emit(emptyList()) }
                         .map { page -> Triple(query, filter, page) }
                 }
                 .collect { (query, filter, page) ->
@@ -62,12 +74,23 @@ internal class HistoryViewModel(
                     val entries = page
                         .map { entry -> entry.toUi(devices[entry.sourceDeviceId]) }
                         .filter { entry -> filter.matches(entry) }
+                    // Запрос выполняется до update: `update` перезапускает лямбду
+                    // при конкурентной записи, и suspend-вызов внутри неё
+                    // выполнялся бы несколько раз. Сбой подсчёта не критичен:
+                    // показываем 0 вместо падения экрана.
+                    val totalCount = runCatching { repository.count(query) }.getOrDefault(0)
+                    // Первая страница всегда читается с offset = 0: следующая
+                    // начинается ровно за ней.
+                    consumedRows = page.size
+                    hasMoreRows = page.size == PAGE_SIZE
+                    val more = hasMoreRows && consumedRows < totalCount
                     _state.update { current ->
                         current.copy(
                             query = query,
                             filter = filter,
                             entries = entries,
-                            totalCount = repository.count(query),
+                            totalCount = totalCount,
+                            hasMore = more,
                             isLoading = false,
                         )
                     }
@@ -119,28 +142,49 @@ internal class HistoryViewModel(
             val limits = settings?.current() ?: ClipboardSettings()
             val cutoff = Clock.System.now().toEpochMilliseconds() -
                 limits.ttlHours * 60L * 60L * 1000L
-            repository.evictExpired(cutoff, limits.maxEntries)
+            // Вытеснение — обслуживание истории: его сбой не должен ронять экран.
+            runCatching { repository.evictExpired(cutoff, limits.maxEntries) }
         }
     }
 
     private fun onQueryChanged(value: String) {
-        _state.update { it.copy(query = value, isLoading = true, entries = emptyList()) }
+        consumedRows = 0
+        hasMoreRows = true
+        _state.update {
+            it.copy(query = value, isLoading = true, entries = emptyList(), hasMore = false)
+        }
         _query.update { value }
     }
 
     private fun onFilterChanged(filter: HistoryFilter) {
-        _state.update { it.copy(filter = filter, isLoading = true) }
+        consumedRows = 0
+        hasMoreRows = true
+        _state.update { it.copy(filter = filter, isLoading = true, hasMore = false) }
         _filter.update { filter }
     }
 
     private fun onLoadNextPage() {
         viewModelScope.launch {
             val current = _state.value
-            if (current.isLoadingMore || current.entries.size >= current.totalCount) return@launch
+            // Конец списка определяется прочитанными строками, а не числом
+            // видимых записей: фильтр по типу прячет часть страницы.
+            if (current.isLoadingMore || !hasMoreRows) return@launch
+            if (consumedRows >= current.totalCount) return@launch
             _state.update { it.copy(isLoadingMore = true) }
-            val next = repository
-                .observePage(current.query, PAGE_SIZE, current.entries.size)
-                .first()
+            val offset = consumedRows
+            // Ошибка чтения не должна ни ронять экран, ни оставлять его в
+            // состоянии «грузится»: иначе кнопка «загрузить ещё» мертва до
+            // перезапуска, а исключение уходит в viewModelScope.
+            val next = runCatching {
+                repository.observePage(current.query, PAGE_SIZE, offset).first()
+            }.getOrNull()
+            if (next == null) {
+                _state.update { it.copy(isLoadingMore = false) }
+                return@launch
+            }
+            consumedRows = offset + next.size
+            hasMoreRows = next.size == PAGE_SIZE
+            val more = hasMoreRows && consumedRows < current.totalCount
             val devices = loadDevices()
             val entries = next
                 .map { entry -> entry.toUi(devices[entry.sourceDeviceId]) }
@@ -149,6 +193,7 @@ internal class HistoryViewModel(
                 state.copy(
                     entries = (state.entries + entries).distinctBy { it.id },
                     isLoadingMore = false,
+                    hasMore = more,
                 )
             }
         }
@@ -165,7 +210,8 @@ internal class HistoryViewModel(
         viewModelScope.launch {
             val entry = _state.value.entries.firstOrNull { it.id == id } ?: return@launch
             val pinned = !entry.isPinned
-            repository.setPinned(id, pinned)
+            // Сбой записи — состояние не меняем: список остаётся правдой БД.
+            if (runCatching { repository.setPinned(id, pinned) }.isFailure) return@launch
             _state.update { state ->
                 val updated = state.entries.map {
                     if (it.id == id) it.copy(isPinned = pinned) else it
@@ -179,7 +225,7 @@ internal class HistoryViewModel(
         viewModelScope.launch {
             val entry = _state.value.entries.firstOrNull { it.id == id } ?: return@launch
             if (entry.isPinned) return@launch
-            repository.delete(id)
+            if (runCatching { repository.delete(id) }.isFailure) return@launch
             _state.update { state ->
                 state.copy(
                     entries = state.entries.filterNot { it.id == id },
@@ -192,7 +238,7 @@ internal class HistoryViewModel(
 
     private fun onRestore(entry: HistoryEntryUi) {
         viewModelScope.launch {
-            repository.restore(entry.toDomain())
+            if (runCatching { repository.restore(entry.toDomain()) }.isFailure) return@launch
             _state.update { state ->
                 state.copy(
                     entries = (listOf(entry) + state.entries)

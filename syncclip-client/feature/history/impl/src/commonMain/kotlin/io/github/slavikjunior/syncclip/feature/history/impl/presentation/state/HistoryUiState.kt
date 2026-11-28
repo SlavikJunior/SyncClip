@@ -10,5 +10,13 @@ internal data class HistoryUiState(
     val totalCount: Int = 0,
     val isLoading: Boolean = false,
     val isLoadingMore: Boolean = false,
+    /**
+     * Есть ли ещё строки в БД за уже прочитанными.
+     *
+     * Нельзя выводить из `entries.size < totalCount`: фильтр по типу скрывает
+     * часть строк, и кнопка «загрузить ещё» оставалась бы навсегда, хотя
+     * запрашивать больше нечего.
+     */
+    val hasMore: Boolean = true,
     val error: StringResource? = null,
 )
