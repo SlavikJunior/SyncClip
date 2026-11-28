@@ -42,6 +42,7 @@ import io.github.slavikjunior.syncclip.feature.history.impl.historyListNavEntry
 import io.github.slavikjunior.syncclip.feature.settings.impl.settingsNavEntry
 import io.github.slavikjunior.syncclip.feature.sync.api.E2eeKeyProvisioner
 import io.github.slavikjunior.syncclip.feature.sync.impl.syncNavEntry
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
 
@@ -97,8 +98,14 @@ public fun SyncClipApp() {
     // знать актуальный токен устройства (FR-1.5, §11.1).
     LaunchedEffect(sessionState) {
         if (sessionState is SessionState.SignedIn) {
-            pushRegistrar.registerCurrentToken()
-            pushTokens.tokens.collect { pushRegistrar.registerCurrentToken() }
+            // Регистрация push — best-effort: сбой DataStore/IPC при чтении
+            // идентичности не должен ронять приложение сразу после входа.
+            runCatching { pushRegistrar.registerCurrentToken() }
+            pushTokens.tokens
+                // Сбой платформенного источника токенов не должен ронять
+                // композицию: push — вспомогательный канал доставки.
+                .catch { }
+                .collect { runCatching { pushRegistrar.registerCurrentToken() } }
         }
     }
 

@@ -76,7 +76,11 @@ fun main() {
             Item(
                 if (clipboardSettings.isOnline) labels.pause else labels.resume,
                 onClick = {
-                    scope.launch { settings.setOnline(!clipboardSettings.isOnline) }
+                    // Сбой записи в DataStore не должен ронять трей-меню:
+                    // пункт просто останется в прежнем состоянии.
+                    scope.launch {
+                        runCatching { settings.setOnline(!clipboardSettings.isOnline) }
+                    }
                 },
             )
             Separator()
