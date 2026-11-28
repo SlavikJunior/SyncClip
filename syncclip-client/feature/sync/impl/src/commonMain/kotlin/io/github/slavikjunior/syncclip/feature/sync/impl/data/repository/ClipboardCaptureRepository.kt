@@ -55,15 +55,21 @@ internal class ClipboardCaptureRepository(
         // отправки: иначе получатели увидели бы дубль с новым eventId.
         pendingShares.takeAlreadySent().forEach { text ->
             if (accept(text) == LocalCaptureVerdict.ACCEPT) {
-                historyWriter.save(
-                    text = text,
-                    timestampMillis = clock.nowMillis(),
-                    sourceDeviceId = null,
-                )
+                // Ошибка хранилища не должна убивать конвейер: следующее
+                // копирование обязано обработаться.
+                runCatching {
+                    historyWriter.save(
+                        text = text,
+                        timestampMillis = clock.nowMillis(),
+                        sourceDeviceId = null,
+                    )
+                }
             }
         }
         // Неотправленные (не было сессии/сети) проходят обычный путь.
-        pendingShares.take().forEach { text -> captureText(text) }
+        runCatching { pendingShares.take() }
+            .getOrDefault(emptyList())
+            .forEach { text -> runCatching { captureText(text) } }
 
         debounce(gateway.localCopies().map { capture ->
             SyncPacket(
@@ -90,11 +96,15 @@ internal class ClipboardCaptureRepository(
     private suspend fun onCaptured(packet: SyncPacket): Boolean {
         if (accept(packet.text) != LocalCaptureVerdict.ACCEPT) return false
 
-        historyWriter.save(
-            text = packet.text,
-            timestampMillis = packet.copiedAtMillis,
-            sourceDeviceId = null,
-        )
+        // История — локальный побочный эффект. Сбой диска не должен мешать
+        // отправке: пакет всё равно уходит, а конвейер продолжает жить.
+        runCatching {
+            historyWriter.save(
+                text = packet.text,
+                timestampMillis = packet.copiedAtMillis,
+                sourceDeviceId = null,
+            )
+        }
         capturedEvents.emit(packet)
         if (settings.current().isOnline) {
             outgoingEvents.emit(packet)

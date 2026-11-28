@@ -70,15 +70,27 @@ internal class FakeClipboardSettingsStore(
 
     private val values = MutableStateFlow(initial)
 
+    /**
+     * Имитация сбоя записи: переполненный диск, повреждённый файл DataStore.
+     * Чтение при этом продолжает работать — так ведёт себя настоящий store.
+     */
+    var failWrites: Boolean = false
+
+    private fun checkWrites() {
+        if (failWrites) error("disk is full")
+    }
+
     override val state: Flow<ClipboardSettings> = values
 
     override suspend fun current(): ClipboardSettings = values.value
 
     override suspend fun setOnline(isOnline: Boolean) {
+        checkWrites()
         values.update { it.copy(isOnline = isOnline) }
     }
 
     override suspend fun setAutoInsert(autoInsert: Boolean) {
+        checkWrites()
         values.update { it.copy(autoInsert = autoInsert) }
     }
 
@@ -86,6 +98,7 @@ internal class FakeClipboardSettingsStore(
         if (!io.github.slavikjunior.syncclip.core.datastore.HistoryLimitsRules.isValidEntries(value)) {
             return false
         }
+        checkWrites()
         values.update { it.copy(maxEntries = value) }
         return true
     }
@@ -94,6 +107,7 @@ internal class FakeClipboardSettingsStore(
         if (!io.github.slavikjunior.syncclip.core.datastore.HistoryLimitsRules.isValidTtlHours(value)) {
             return false
         }
+        checkWrites()
         values.update { it.copy(ttlHours = value) }
         return true
     }
@@ -102,6 +116,7 @@ internal class FakeClipboardSettingsStore(
         if (!io.github.slavikjunior.syncclip.core.datastore.HistoryLimitsRules.isValidBytes(value)) {
             return false
         }
+        checkWrites()
         values.update { it.copy(maxBytes = value) }
         return true
     }
@@ -116,6 +131,7 @@ internal class FakeClipboardSettingsStore(
         ) {
             return false
         }
+        checkWrites()
         values.update {
             it.copy(maxEntries = maxEntries, ttlHours = ttlHours, maxBytes = maxBytes)
         }
@@ -310,9 +326,16 @@ internal class FakeLanServer : io.github.slavikjunior.syncclip.core.lan.LanServe
     var port: Int = 41_000
     var started: Boolean = false
 
+    /** Сколько первых `start` должны упасть (занят порт, нет сети). */
+    var failStarts: Int = 0
+
     override suspend fun start(
         handle: suspend (io.github.slavikjunior.syncclip.core.lan.LanRawStream) -> Unit,
     ): Int {
+        if (failStarts > 0) {
+            failStarts--
+            error("port is busy")
+        }
         handler = handle
         started = true
         return port
@@ -373,6 +396,9 @@ internal class BufferLanStream(
     private val written = mutableListOf<Byte>()
     private var writtenOffset = 0
 
+    /** Последний запрошенный таймаут чтения: транспорт обязан защитить приём. */
+    var lastReadTimeoutMillis: Long? = null
+
     override suspend fun readFully(size: Int): ByteArray? {
         if (readOffset + size > input.size) return null
         val result = input.copyOfRange(readOffset, readOffset + size)
@@ -384,7 +410,9 @@ internal class BufferLanStream(
         written.addAll(bytes.toList())
     }
 
-    override suspend fun setReadTimeout(millis: Long) = Unit
+    override suspend fun setReadTimeout(millis: Long) {
+        lastReadTimeoutMillis = millis
+    }
 
     override suspend fun close() = Unit
 

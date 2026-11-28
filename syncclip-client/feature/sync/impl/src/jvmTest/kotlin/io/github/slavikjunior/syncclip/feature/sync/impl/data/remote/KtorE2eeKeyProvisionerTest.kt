@@ -213,6 +213,51 @@ internal class KtorE2eeKeyProvisionerTest {
     }
 
     @Test
+    fun `absurd retry after is clamped instead of overflowing`() = runTest {
+        val canary = encryptCanary("right-password")
+        // 9_223_372_036_854_775 * 1000 переполняет Long: без ограничения
+        // lockedUntil стал бы отрицательным и блокировка обходилась бы.
+        val absurdSeconds = 9_223_372_036_854_775L
+        val plans = ArrayDeque(
+            listOf(
+                HttpStatusCode.OK to """{"remainingAttempts":2}""",
+                HttpStatusCode.OK to """{"remainingAttempts":1}""",
+                HttpStatusCode.Forbidden to "{}",
+            ),
+        )
+        val engine = MockEngine { request ->
+            when (request.url.encodedPath) {
+                "/v1/auth/canary" -> respondJson("""{"encryptedCanary":"$canary"}""")
+                "/v1/auth/canary/attempt" -> {
+                    val (status, body) = plans.removeFirst()
+                    respond(
+                        content = body,
+                        status = status,
+                        headers = if (status == HttpStatusCode.Forbidden) {
+                            headersOf(HttpHeaders.RetryAfter, absurdSeconds.toString())
+                        } else {
+                            jsonHeaders()
+                        },
+                    )
+                }
+
+                else -> respond("", HttpStatusCode.NotFound)
+            }
+        }
+        val lockout = FakeLockoutStore()
+        val now = 1_000_000L
+        val provisioner = provisioner(engine, lockout) { now }
+
+        assertIs<E2eeUnlockResult.InvalidPassword>(provisioner.unlock("wrong"))
+        assertIs<E2eeUnlockResult.InvalidPassword>(provisioner.unlock("wrong"))
+        val locked = assertIs<E2eeUnlockResult.Locked>(provisioner.unlock("wrong"))
+
+        val oneDay = 24L * 60L * 60L
+        assertEquals(oneDay, locked.retryAfterSeconds)
+        assertEquals(now + oneDay * 1_000, lockout.current().lockedUntilMillis)
+    }
+
+    @Test
     fun `lockout cycle is 5m, 5m, 2h`() = runTest {
         val canary = encryptCanary("right-password")
         val plans = ArrayDeque(

@@ -125,8 +125,13 @@ internal class KtorE2eeKeyProvisioner(
             }
 
             is AttemptReport.Locked -> {
-                lockout?.lockUntil(nowMillis + report.retryAfterSeconds * 1_000)
-                E2eeUnlockResult.Locked(report.retryAfterSeconds)
+                // `Retry-After` — недоверенный ввод (заголовок или тело 403).
+                // Без ограничения `Long.MAX_VALUE * 1000` переполняется в
+                // отрицательное значение — блокировка обходится, а очень
+                // большое значение запирает устройство на десятки лет.
+                val seconds = report.retryAfterSeconds.coerceIn(1, MAX_LOCKOUT_SECONDS)
+                lockout?.lockUntil(nowMillis + seconds * 1_000)
+                E2eeUnlockResult.Locked(seconds)
             }
 
             AttemptReport.Reset -> E2eeUnlockResult.InvalidPassword(null)
@@ -178,5 +183,8 @@ internal class KtorE2eeKeyProvisioner(
     private companion object {
         const val CANARY_PATH = "v1/auth/canary"
         const val CANARY_PREFIX = "syncclip-canary-"
+
+        /** Предел клиентской блокировки: сутки. Дольше — это уже «сломано». */
+        const val MAX_LOCKOUT_SECONDS = 24L * 60L * 60L
     }
 }

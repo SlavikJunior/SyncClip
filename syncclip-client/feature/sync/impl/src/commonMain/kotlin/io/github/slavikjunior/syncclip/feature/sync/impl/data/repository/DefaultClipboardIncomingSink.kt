@@ -1,6 +1,7 @@
 package io.github.slavikjunior.syncclip.feature.sync.impl.data.repository
 
 import io.github.slavikjunior.syncclip.core.clipboard.ClipboardGateway
+import io.github.slavikjunior.syncclip.core.clipboard.ClipboardLimits
 import io.github.slavikjunior.syncclip.core.clipboard.EpochClock
 import io.github.slavikjunior.syncclip.core.datastore.ClipboardSettingsStore
 import io.github.slavikjunior.syncclip.feature.sync.impl.domain.model.IncomingClipboardAction
@@ -15,6 +16,11 @@ import io.github.slavikjunior.syncclip.feature.sync.impl.domain.usecase.ResolveI
  *
  * Дубль определяется по `eventId` до любых побочных эффектов: если этого не
  * сделать, LAN и сервер применят один пакет дважды.
+ *
+ * Ошибки хранилища и буфера здесь не пробрасываются: исключение из этого метода
+ * рвёт `receiveLoop` транспорта и отменяет WebSocket, но пакет при этом уже
+ * помечен обработанным — сервер получил бы повтор, а клиент его проигнорировал.
+ * Запись в историю — best-effort: она не должна блокировать доставку в буфер.
  */
 internal class DefaultClipboardIncomingSink(
     private val deduplicate: DeduplicateEventUseCase,
@@ -26,23 +32,55 @@ internal class DefaultClipboardIncomingSink(
 ) : ClipboardIncomingSink {
 
     override suspend fun receive(packet: IncomingClipboardPacket): IncomingClipboardAction {
+        // Пустой текст не приходит от корректного клиента (отправка пустого
+        // запрещена), но битый/чужой пакет не должен оставлять пустую запись.
+        if (packet.text.isBlank()) return IncomingClipboardAction.IGNORE
+
+        // Лимит 512 КиБ из NFR проверяется и на приёме: отправитель мог быть
+        // другой версии или злоумышленником, а буфер и история — наши.
+        if (ClipboardLimits.utf8Size(packet.text) > ClipboardLimits.MAX_TEXT_BYTES) {
+            return IncomingClipboardAction.IGNORE
+        }
+
         if (deduplicate(packet.eventId)) return IncomingClipboardAction.IGNORE
 
+        val nowMillis = clock.nowMillis()
         val current = settings.current()
         val action = resolve(
             isOnline = current.isOnline,
             autoInsert = current.autoInsert,
-            nowMillis = clock.nowMillis(),
+            nowMillis = nowMillis,
             lastLocalCaptureMillis = gateway.lastLocalCaptureMillis(),
         )
-        historyWriter.save(
-            text = packet.text,
-            timestampMillis = packet.copiedAtMillis,
-            sourceDeviceId = packet.originDeviceId,
-        )
+        runCatching {
+            historyWriter.save(
+                text = packet.text,
+                timestampMillis = saneTimestamp(packet.copiedAtMillis, nowMillis),
+                sourceDeviceId = packet.originDeviceId,
+            )
+        }
         if (action == IncomingClipboardAction.SAVE_AND_INSERT) {
-            gateway.insert(packet.text)
+            runCatching { gateway.insert(packet.text) }
         }
         return action
+    }
+
+    /**
+     * `timestamp` приходит от другого устройства и является недоверенным.
+     *
+     * Будущая метка (часы пира ушли вперёд) поднимала бы запись в начало истории
+     * навсегда и выводила её из-под TTL-вытеснения. Неизвестное время (`0` и
+     * меньше — протокол разрешает «время неизвестно») заменяем локальным.
+     * Прошлое не трогаем: офлайн-очередь сервера живёт до 48 часов.
+     */
+    private fun saneTimestamp(timestampMillis: Long, nowMillis: Long): Long = when {
+        timestampMillis <= 0L -> nowMillis
+        timestampMillis > nowMillis + MAX_FUTURE_SKEW_MILLIS -> nowMillis
+        else -> timestampMillis
+    }
+
+    private companion object {
+        /** Допустимое расхождение часов между устройствами. */
+        const val MAX_FUTURE_SKEW_MILLIS = 5L * 60L * 1000L
     }
 }

@@ -35,6 +35,11 @@ internal class IncomingPacketProcessor(
             cipher.decrypt(encryptedPayload, key)
         } catch (_: CryptoException) {
             return false
+        } catch (_: IllegalArgumentException) {
+            // Ключ неверной длины (повреждённое хранилище) — пакет не наш.
+            // Такое исключение не должно доходить до receiveLoop: транспорт
+            // принял бы его за обрыв и переподключался бы на каждом кадре.
+            return false
         }
         if (PayloadHash.of(text) != payloadHash) return false
 
