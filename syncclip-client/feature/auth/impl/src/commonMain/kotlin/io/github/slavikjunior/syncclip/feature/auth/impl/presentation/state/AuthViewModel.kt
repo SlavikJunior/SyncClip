@@ -2,6 +2,7 @@ package io.github.slavikjunior.syncclip.feature.auth.impl.presentation.state
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import io.github.slavikjunior.syncclip.feature.auth.impl.domain.model.AuthFailureReason
 import io.github.slavikjunior.syncclip.feature.auth.impl.domain.model.AuthResult
 import io.github.slavikjunior.syncclip.feature.auth.impl.domain.repository.AuthRepository
 import kotlinx.coroutines.channels.Channel
@@ -58,10 +59,15 @@ internal class AuthViewModel(
 
         currentState.update { it.copy(isSubmitting = true, failure = null) }
         viewModelScope.launch {
-            val result = when (snapshot.mode) {
-                AuthMode.SIGN_IN -> repository.signIn(snapshot.email, snapshot.password)
-                AuthMode.SIGN_UP -> repository.signUp(snapshot.email, snapshot.password)
-            }
+            // Вход трогает DataStore (сохранение сессии, идентичность
+            // устройства) и сеть: сбой диска не должен ронять приложение на
+            // экране входа и оставлять кнопку «Войти» заблокированной.
+            val result = runCatching {
+                when (snapshot.mode) {
+                    AuthMode.SIGN_IN -> repository.signIn(snapshot.email, snapshot.password)
+                    AuthMode.SIGN_UP -> repository.signUp(snapshot.email, snapshot.password)
+                }
+            }.getOrElse { AuthResult.Failure(AuthFailureReason.UNKNOWN) }
             when (result) {
                 AuthResult.Success -> {
                     currentState.update { it.copy(isSubmitting = false, password = "") }
